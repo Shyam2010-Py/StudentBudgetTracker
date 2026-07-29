@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>PocketPilot — PNG Icon Generator</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0f172a;color:#f1f5f9;padding:2rem;max-width:780px;margin:0 auto;}
+  h1{color:#a5b4fc;margin-bottom:0.5rem;}
+  p{color:#94a3b8;margin-bottom:1.5rem;}
+  button{background:#6366f1;color:#fff;border:none;padding:0.8rem 1.4rem;border-radius:10px;font-weight:600;cursor:pointer;font-size:1rem;margin-right:0.6rem;}
+  button:hover{background:#4f46e5;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:1rem;margin-top:1.5rem;}
+  .cell{background:#1e293b;border-radius:12px;padding:1rem;text-align:center;}
+  .cell img{width:80px;height:80px;display:block;margin:0 auto 0.5rem;}
+  .cell small{color:#94a3b8;font-size:0.75rem;}
+  .status{margin-top:1rem;color:#10b981;font-weight:600;}
+</style>
+</head>
+<body>
+<h1>🎨 PocketPilot — PNG Icon Generator</h1>
+<p>One-time tool. Generates all required PNG icons from the SVG source. Click the button to download each PNG into the <code>icons/</code> folder.</p>
+<button id="genBtn">⬇️ Generate &amp; Download All PNGs</button>
+<button id="autoBtn">📦 Auto-download in sequence</button>
+<div class="status" id="status"></div>
+<div class="grid" id="grid"></div>
+<script>
+const SIZES = [72, 96, 128, 144, 152, 192, 384, 512];
+const SVG_URL = "icon-512.svg"; // we'll rasterize this
+
+function makePng(size){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = size; c.height = size;
+      const ctx = c.getContext("2d");
+      ctx.drawImage(img, 0, 0, size, size);
+      c.toBlob((blob) => resolve({ size, blob }), "image/png");
+    };
+    img.src = SVG_URL;
+  });
+}
+
+async function downloadAll(){
+  const status = document.getElementById("status");
+  status.textContent = "Generating…";
+  for (const size of SIZES){
+    const { blob } = await makePng(size);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `icon-${size}.png`;
+    a.click();
+    await new Promise(r => setTimeout(r, 250));
+  }
+  status.textContent = "✅ Done! All 8 PNGs downloaded. Move them into the icons/ folder.";
+}
+
+document.getElementById("genBtn").addEventListener("click", downloadAll);
+
+// Preview
+const grid = document.getElementById("grid");
+SIZES.forEach(s => {
+  const cell = document.createElement("div");
+  cell.className = "cell";
+  cell.innerHTML = `<img src="icon-${s}.svg" alt="${s}"/><small>${s}×${s}</small>`;
+  grid.appendChild(cell);
+});
+</script>
+</body>
+</html>
