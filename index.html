@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#6366f1" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json" />
+<meta name="application-name" content="PocketPilot" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="PocketPilot" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="format-detection" content="telephone=no" />
+<meta name="description" content="PocketPilot — Smart Budgeting for Students. Track your allowance, expenses, savings, and goals — fully offline." />
+
+<!-- Icons -->
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+<link rel="apple-touch-icon" href="icons/icon-192.svg" />
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.svg" />
+<link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.svg" />
+
+<!-- Performance -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+<link rel="preload" href="css/styles.css" as="style" />
+<link rel="preload" href="js/storage.js" as="script" />
+<link rel="preload" href="js/app.js" as="script" />
+
+<title>PocketPilot • Student Budget Tracker</title>
+<link rel="stylesheet" href="css/styles.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+</head>
+<body>
+<!-- ================== ONBOARDING MODAL ================== -->
+<div id="onboardingModal" class="modal">
+  <div class="modal-content onboarding">
+    <div class="onboarding-header">
+      <div class="logo-circle">💰</div>
+      <h1>Welcome!</h1>
+      <p>Let's set up your Student Budget Tracker</p>
+    </div>
+    <form id="onboardingForm" class="form-grid">
+      <div class="input-group">
+        <label>Monthly Allowance (₹)</label>
+        <input type="number" id="setupAllowance" min="0" required />
+      </div>
+      <div class="input-group">
+        <label>Savings Goal (₹)</label>
+        <input type="number" id="setupSavings" min="0" required />
+      </div>
+      <div class="input-group">
+        <label>College Budget (₹)</label>
+        <input type="number" id="setupCollege" min="0" required />
+      </div>
+      <div class="input-group">
+        <label>Printout Budget (₹)</label>
+        <input type="number" id="setupPrintout" min="0" required />
+      </div>
+      <div class="input-group">
+        <label>Food & Snacks Budget (₹)</label>
+        <input type="number" id="setupFood" min="0" required />
+      </div>
+      <div class="input-group">
+        <label>Emergency Budget (Optional)</label>
+        <input type="number" id="setupEmergency" min="0" value="0" />
+      </div>
+      <button type="submit" class="btn-primary">Get Started 🚀</button>
+    </form>
+  </div>
+</div>
+
+<!-- ================== HEADER ================== -->
+<header class="app-header">
+  <div class="header-left">
+    <button id="menuToggle" class="icon-btn" aria-label="Menu">☰</button>
+    <div class="brand">
+      <span class="brand-icon">💰</span>
+      <span class="brand-name">Budget Tracker</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <button id="installBtn" class="install-btn" style="display:none;" aria-label="Install PocketPilot">⬇️ Install</button>
+    <button id="themeToggle" class="icon-btn" aria-label="Toggle theme">🌙</button>
+  </div>
+</header>
+
+<!-- ================== SIDEBAR ================== -->
+<aside id="sidebar" class="sidebar">
+  <nav class="nav-list">
+    <a href="#" class="nav-item active" data-section="dashboard"><span>📊</span> Dashboard</a>
+    <a href="#" class="nav-item" data-section="addExpense"><span>➕</span> Add Expense</a>
+    <a href="#" class="nav-item" data-section="history"><span>📜</span> History</a>
+    <a href="#" class="nav-item" data-section="analytics"><span>📈</span> Analytics</a>
+    <a href="#" class="nav-item" data-section="goals"><span>🎯</span> Goals</a>
+    <a href="#" class="nav-item" data-section="report"><span>📋</span> Report</a>
+    <a href="#" class="nav-item" data-section="settings"><span>⚙️</span> Settings</a>
+  </nav>
+  <div class="sidebar-footer">
+    <p>v1.0.0</p>
+  </div>
+</aside>
+<div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+<!-- ================== MAIN ================== -->
+<main class="main-content">
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="section active">
+    <div class="section-title">
+      <h1>Dashboard</h1>
+      <p class="muted" id="dashGreeting">Welcome back!</p>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card gradient-purple">
+        <div class="stat-icon">💵</div>
+        <div class="stat-info">
+          <p class="stat-label">Total Allowance</p>
+          <h2 class="stat-value" id="statAllowance">₹0</h2>
+        </div>
+      </div>
+      <div class="stat-card gradient-green">
+        <div class="stat-icon">💰</div>
+        <div class="stat-info">
+          <p class="stat-label">Remaining Balance</p>
+          <h2 class="stat-value" id="statRemaining">₹0</h2>
+        </div>
+      </div>
+      <div class="stat-card gradient-blue">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-info">
+          <p class="stat-label">Savings Goal</p>
+          <h2 class="stat-value" id="statSavingsGoal">₹0</h2>
+        </div>
+      </div>
+      <div class="stat-card gradient-amber">
+        <div class="stat-icon">🏦</div>
+        <div class="stat-info">
+          <p class="stat-label">Money Saved</p>
+          <h2 class="stat-value" id="statSaved">₹0</h2>
+        </div>
+      </div>
+      <div class="stat-card gradient-pink">
+        <div class="stat-icon">📅</div>
+        <div class="stat-info">
+          <p class="stat-label">Today's Spending</p>
+          <h2 class="stat-value" id="statToday">₹0</h2>
+        </div>
+      </div>
+      <div class="stat-card gradient-teal">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-info">
+          <p class="stat-label">Days Remaining</p>
+          <h2 class="stat-value" id="statDays">0</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="card health-card">
+        <h3>Financial Health Score</h3>
+        <div class="health-score-wrap">
+          <div class="health-ring">
+            <svg viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" class="ring-bg" />
+              <circle cx="60" cy="60" r="52" class="ring-fg" id="healthRing" />
+            </svg>
+            <div class="health-score-text">
+              <span id="healthScore">0</span>
+              <small>/100</small>
+            </div>
+          </div>
+          <p id="healthMessage" class="health-message">Calculating...</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Budget Progress</h3>
+        <div id="budgetProgress" class="progress-list"></div>
+      </div>
+    </div>
+
+    <div id="warnings" class="warnings"></div>
+
+    <div class="card">
+      <h3>Recent Transactions</h3>
+      <div id="recentTransactions" class="recent-list"></div>
+    </div>
+  </section>
+
+  <!-- ADD EXPENSE -->
+  <section id="addExpense" class="section">
+    <div class="section-title">
+      <h1>Add Expense</h1>
+      <p class="muted">Track every rupee you spend</p>
+    </div>
+    <form id="expenseForm" class="card form-card">
+      <div class="form-grid">
+        <div class="input-group full">
+          <label>Expense Name</label>
+          <input type="text" id="expName" required placeholder="e.g. Lunch at canteen" />
+        </div>
+        <div class="input-group">
+          <label>Amount (₹)</label>
+          <input type="number" id="expAmount" min="1" step="0.01" required placeholder="0.00" />
+        </div>
+        <div class="input-group">
+          <label>Category</label>
+          <select id="expCategory" required>
+            <option value="Food">🍔 Food</option>
+            <option value="College">🎓 College</option>
+            <option value="Printouts">📄 Printouts</option>
+            <option value="Transport">🚌 Transport</option>
+            <option value="Shopping">🛍️ Shopping</option>
+            <option value="Emergency">🚨 Emergency</option>
+            <option value="Other">📦 Other</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Type</label>
+          <select id="expType" required>
+            <option value="Need">✅ Need</option>
+            <option value="Craving">💭 Craving</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Date</label>
+          <input type="date" id="expDate" required />
+        </div>
+        <div class="input-group full">
+          <label>Notes (Optional)</label>
+          <textarea id="expNotes" rows="2" placeholder="Any extra details..."></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">💾 Save Expense</button>
+        <button type="reset" class="btn-ghost">Clear</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="history" class="section">
+    <div class="section-title">
+      <h1>Expense History</h1>
+      <p class="muted">All your transactions in one place</p>
+    </div>
+    <div class="card">
+      <div class="filters">
+        <input type="text" id="searchExp" placeholder="🔍 Search expenses..." />
+        <select id="filterCategory">
+          <option value="all">All Categories</option>
+          <option value="Food">🍔 Food</option>
+          <option value="College">🎓 College</option>
+          <option value="Printouts">📄 Printouts</option>
+          <option value="Transport">🚌 Transport</option>
+          <option value="Shopping">🛍️ Shopping</option>
+          <option value="Emergency">🚨 Emergency</option>
+          <option value="Other">📦 Other</option>
+        </select>
+        <input type="month" id="filterMonth" />
+        <button id="clearFilters" class="btn-ghost">Reset</button>
+      </div>
+      <div id="expenseList" class="expense-list"></div>
+    </div>
+  </section>
+
+  <!-- ANALYTICS -->
+  <section id="analytics" class="section">
+    <div class="section-title">
+      <h1>Analytics</h1>
+      <p class="muted">Understand your spending patterns</p>
+    </div>
+    <div class="stats-grid analytics-summary">
+      <div class="stat-card"><div class="stat-info"><p class="stat-label">Food Spending</p><h2 class="stat-value" id="anaFood">₹0</h2></div></div>
+      <div class="stat-card"><div class="stat-info"><p class="stat-label">College Spending</p><h2 class="stat-value" id="anaCollege">₹0</h2></div></div>
+      <div class="stat-card"><div class="stat-info"><p class="stat-label">Savings</p><h2 class="stat-value" id="anaSavings">₹0</h2></div></div>
+      <div class="stat-card"><div class="stat-info"><p class="stat-label">Remaining</p><h2 class="stat-value" id="anaRemaining">₹0</h2></div></div>
+    </div>
+    <div class="dashboard-grid">
+      <div class="card">
+        <h3>Category-wise Spending</h3>
+        <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Need vs Craving</h3>
+        <div class="chart-wrap"><canvas id="typeChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Monthly Spending Trend</h3>
+      <div class="chart-wrap" style="height:200px;"><canvas id="trendChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- GOALS -->
+  <section id="goals" class="section">
+    <div class="section-title">
+      <h1>Savings Goals</h1>
+      <p class="muted">Dream it. Plan it. Save it.</p>
+    </div>
+    <form id="goalForm" class="card form-card">
+      <div class="form-grid">
+        <div class="input-group">
+          <label>Goal Name</label>
+          <input type="text" id="goalName" required placeholder="e.g. New Headphones" />
+        </div>
+        <div class="input-group">
+          <label>Target Amount (₹)</label>
+          <input type="number" id="goalTarget" min="1" required />
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">➕ Add Goal</button>
+    </form>
+    <div id="goalList" class="goals-grid"></div>
+  </section>
+
+  <!-- REPORT -->
+  <section id="report" class="section">
+    <div class="section-title">
+      <h1>Monthly Report</h1>
+      <p class="muted" id="reportMonth">—</p>
+    </div>
+    <div id="reportContent" class="card"></div>
+    <div class="form-actions">
+      <button id="downloadPdf" class="btn-primary">📄 Export PDF</button>
+      <button id="downloadCsv" class="btn-ghost">📊 Export CSV</button>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="section">
+    <div class="section-title">
+      <h1>Settings</h1>
+      <p class="muted">Customize your tracker</p>
+    </div>
+    <form id="settingsForm" class="card form-card">
+      <h3>Edit Allowance & Budgets</h3>
+      <div class="form-grid">
+        <div class="input-group"><label>Monthly Allowance (₹)</label><input type="number" id="setAllowance" required /></div>
+        <div class="input-group"><label>Savings Goal (₹)</label><input type="number" id="setSavings" required /></div>
+        <div class="input-group"><label>College Budget (₹)</label><input type="number" id="setCollege" required /></div>
+        <div class="input-group"><label>Printout Budget (₹)</label><input type="number" id="setPrintout" required /></div>
+        <div class="input-group"><label>Food & Snacks Budget (₹)</label><input type="number" id="setFood" required /></div>
+        <div class="input-group"><label>Emergency Budget (₹)</label><input type="number" id="setEmergency" required /></div>
+      </div>
+      <button type="submit" class="btn-primary">💾 Save Settings</button>
+    </form>
+
+    <div class="card">
+      <h3>Data Management</h3>
+      <div class="form-actions">
+        <button id="exportCsv" class="btn-ghost">📊 Export CSV</button>
+        <button id="exportJson" class="btn-ghost">💾 Export Backup</button>
+        <label class="btn-ghost file-label">📥 Import Backup<input type="file" id="importFile" accept=".json" hidden /></label>
+        <button id="resetMonth" class="btn-danger">🗓️ Reset Monthly Data</button>
+        <button id="resetAll" class="btn-danger">⚠️ Reset Everything</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- EDIT MODAL -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <h2>Edit Expense</h2>
+    <form id="editForm" class="form-grid">
+      <input type="hidden" id="editId" />
+      <div class="input-group full"><label>Name</label><input type="text" id="editName" required /></div>
+      <div class="input-group"><label>Amount (₹)</label><input type="number" id="editAmount" required min="0" step="0.01" /></div>
+      <div class="input-group"><label>Category</label>
+        <select id="editCategory">
+          <option value="Food">🍔 Food</option>
+          <option value="College">🎓 College</option>
+          <option value="Printouts">📄 Printouts</option>
+          <option value="Transport">🚌 Transport</option>
+          <option value="Shopping">🛍️ Shopping</option>
+          <option value="Emergency">🚨 Emergency</option>
+          <option value="Other">📦 Other</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Type</label>
+        <select id="editType">
+          <option value="Need">✅ Need</option>
+          <option value="Craving">💭 Craving</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Date</label><input type="date" id="editDate" required /></div>
+      <div class="input-group full"><label>Notes</label><textarea id="editNotes" rows="2"></textarea></div>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Save Changes</button>
+        <button type="button" id="cancelEdit" class="btn-ghost">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<script src="js/storage.js"></script>
+<script src="js/pwa.js"></script>
+<script src="js/app.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/expenses.js"></script>
+<script src="js/analytics.js"></script>
+<script src="js/goals.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/report.js"></script>
+</body>
+</html>
