@@ -77,14 +77,6 @@ StudentBudgetTracker/
 
 > 💡 Service Workers require **HTTPS** or `localhost`. For local testing, use a tiny server: `python3 -m http.server` from the project folder.
 
-## 📦 Generating PNG Icons (Optional)
-
-Modern browsers accept SVG in the manifest, but for older devices:
-
-1. Open `icons/generate-png.html` in a browser
-2. Click **Generate & Download All PNGs**
-3. Move the downloaded PNGs into the `icons/` folder
-4. Update `manifest.json` to reference `.png` instead of `.svg`
 
 ## 📖 Documentation
 
