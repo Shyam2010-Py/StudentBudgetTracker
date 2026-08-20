@@ -22,11 +22,10 @@ function renderGoals() {
     container.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">🎯</div><p>No goals yet. Add one to get started!</p></div>`;
     return;
   }
-  container.innerHTML = goals
-    .map((g) => {
-      const pct = g.target > 0 ? Math.min(100, (g.saved / g.target) * 100) : 0;
-      const colorClass = pct >= 100 ? "" : pct >= 60 ? "warn" : "";
-      return `
+  container.innerHTML = goals.map((g) => {
+    const pct = g.target > 0 ? Math.min(100, (g.saved / g.target) * 100) : 0;
+    const colorClass = pct >= 100 ? "" : pct >= 60 ? "warn" : "";
+    return `
       <div class="card goal-card">
         <div class="goal-header">
           <div class="goal-name">${escapeHtml(g.name)}</div>
@@ -37,30 +36,55 @@ function renderGoals() {
           <span>${formatCurrency(g.saved)} / ${formatCurrency(g.target)}</span>
           <span class="goal-percent">${pct.toFixed(0)}%</span>
         </div>
+        ${pct >= 100 ? `<div class="goal-complete">🎉 Goal reached!</div>` : `
         <form class="contribute-form" onsubmit="contributeToGoal(event, '${g.id}')">
-          <input type="number" min="1" step="0.01" placeholder="Add amount" required />
+          <input type="number" min="1" step="0.01" max="${Math.max(0.01, g.target - g.saved).toFixed(2)}" placeholder="Add amount" required />
           <button type="submit" class="btn-primary">+ Add</button>
-        </form>
+        </form>`}
       </div>`;
-    })
-    .join("");
+  }).join("");
 }
 
 function contributeToGoal(e, id) {
   e.preventDefault();
-  const amount = +e.target.querySelector("input").value;
-  if (!amount) return;
+  const amount = Number(e.target.querySelector("input").value);
+  if (!Number.isFinite(amount) || amount <= 0) return;
+
   const goal = getGoals().find((g) => g.id === id);
   if (!goal) return;
-  updateGoal(id, { saved: Number(goal.saved) + amount });
+
+  const s = getSettings();
+  const available = s.allowance - sumExpenses(getCurrentMonthExpenses()) - getCurrentMonthSavings();
+  if (amount > available) {
+    showToast(`⚠️ Only ${formatCurrency(Math.max(0, available))} is available this month.`, "warning");
+    return;
+  }
+
+  const remainingTarget = Math.max(0, Number(goal.target) - Number(goal.saved));
+  if (amount > remainingTarget) {
+    showToast(`⚠️ This goal needs only ${formatCurrency(remainingTarget)} more.`, "warning");
+    return;
+  }
+
+  const contributions = Array.isArray(goal.contributions) ? [...goal.contributions] : [];
+  contributions.push({ amount, date: currentLocalDate() });
+  updateGoal(id, { contributions });
   showToast(`💰 Added ${formatCurrency(amount)} to "${goal.name}"!`, "success");
   renderGoals();
+  renderDashboard();
 }
 
 function removeGoal(id) {
-  if (confirm("Delete this goal?")) {
+  const goal = getGoals().find((g) => g.id === id);
+  if (!goal) return;
+  const saved = Number(goal.saved || 0);
+  const message = saved > 0
+    ? `Delete this goal and release ${formatCurrency(saved)} back to your available balance?`
+    : "Delete this goal?";
+  if (confirm(message)) {
     deleteGoal(id);
-    showToast("🗑️ Goal removed", "warning");
+    showToast("🗑️ Goal removed and saved amount released", "warning");
     renderGoals();
+    renderDashboard();
   }
 }
