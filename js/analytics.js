@@ -8,15 +8,21 @@ function renderAnalytics() {
   const s = getSettings();
   const monthExp = getCurrentMonthExpenses();
   const totalSpent = sumExpenses(monthExp);
-  const remaining = Math.max(0, s.allowance - totalSpent);
+  const currentSavings = getCurrentMonthSavings();
+  const remaining = Math.max(0, s.allowance - totalSpent - currentSavings);
 
-  // Summary stats
   document.getElementById("anaFood").textContent = formatCurrency(sumExpenses(monthExp, "Food"));
   document.getElementById("anaCollege").textContent = formatCurrency(sumExpenses(monthExp, "College"));
-  document.getElementById("anaSavings").textContent = formatCurrency(Math.min(remaining, s.savingsGoal || remaining));
+  document.getElementById("anaSavings").textContent = formatCurrency(currentSavings);
   document.getElementById("anaRemaining").textContent = formatCurrency(remaining);
 
-  // Category chart
+  if (typeof Chart === "undefined") {
+    renderChartFallback("categoryChart", "Analytics charts are unavailable offline until Chart.js has been loaded once.");
+    renderChartFallback("typeChart", "Need vs Craving chart is unavailable offline until Chart.js has been loaded once.");
+    renderChartFallback("trendChart", "Monthly trend is unavailable offline until Chart.js has been loaded once.");
+    return;
+  }
+
   const catData = CATEGORIES.map((c) => sumExpenses(monthExp, c));
   const catColors = ["#f59e0b", "#6366f1", "#3b82f6", "#10b981", "#ec4899", "#ef4444", "#94a3b8"];
   const catTotal = catData.reduce((s, v) => s + v, 0);
@@ -26,20 +32,11 @@ function renderAnalytics() {
     type: "doughnut",
     data: {
       labels: catTotal > 0 ? CATEGORIES : ["No data"],
-      datasets: [{
-        data: catTotal > 0 ? catData : [1],
-        backgroundColor: catTotal > 0 ? catColors : ["#cbd5e1"],
-        borderWidth: 0,
-      }],
+      datasets: [{ data: catTotal > 0 ? catData : [1], backgroundColor: catTotal > 0 ? catColors : ["#cbd5e1"], borderWidth: 0 }],
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom" } },
-    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } },
   });
 
-  // Need vs Craving chart
   const need = monthExp.filter((e) => e.type === "Need").reduce((s, e) => s + Number(e.amount), 0);
   const craving = monthExp.filter((e) => e.type === "Craving").reduce((s, e) => s + Number(e.amount), 0);
   const typeTotal = need + craving;
@@ -49,16 +46,11 @@ function renderAnalytics() {
     type: "doughnut",
     data: {
       labels: typeTotal > 0 ? ["✅ Needs", "💭 Cravings"] : ["No data"],
-      datasets: [{
-        data: typeTotal > 0 ? [need, craving] : [1],
-        backgroundColor: typeTotal > 0 ? ["#10b981", "#f59e0b"] : ["#cbd5e1"],
-        borderWidth: 0,
-      }],
+      datasets: [{ data: typeTotal > 0 ? [need, craving] : [1], backgroundColor: typeTotal > 0 ? ["#10b981", "#f59e0b"] : ["#cbd5e1"], borderWidth: 0 }],
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } },
   });
 
-  // Monthly trend (last 6 months)
   renderTrendChart();
 }
 
@@ -80,22 +72,25 @@ function renderTrendChart() {
     type: "line",
     data: {
       labels: months,
-      datasets: [{
-        label: "Spending (₹)",
-        data: totals,
-        borderColor: "#6366f1",
-        backgroundColor: "rgba(99,102,241,0.15)",
-        fill: true,
-        tension: 0.35,
-        pointBackgroundColor: "#6366f1",
-        pointRadius: 5,
-      }],
+      datasets: [{ label: "Spending (₹)", data: totals, borderColor: "#6366f1", backgroundColor: "rgba(99,102,241,0.15)", fill: true, tension: 0.35, pointBackgroundColor: "#6366f1", pointRadius: 5 }],
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } },
-    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
   });
+}
+
+function renderChartFallback(canvasId, message) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const parent = canvas.parentElement;
+  canvas.style.display = "none";
+  let note = parent.querySelector(`[data-chart-fallback="${canvasId}"]`);
+  if (!note) {
+    note = document.createElement("p");
+    note.dataset.chartFallback = canvasId;
+    note.className = "muted";
+    note.style.padding = "2rem 1rem";
+    note.style.textAlign = "center";
+    parent.appendChild(note);
+  }
+  note.textContent = message;
 }
