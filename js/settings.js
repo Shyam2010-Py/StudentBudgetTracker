@@ -16,24 +16,27 @@ function setupSettings() {
   document.getElementById("settingsForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const settings = {
-      allowance: +document.getElementById("setAllowance").value,
-      savingsGoal: +document.getElementById("setSavings").value,
-      collegeBudget: +document.getElementById("setCollege").value,
-      printoutBudget: +document.getElementById("setPrintout").value,
-      foodBudget: +document.getElementById("setFood").value,
-      emergencyBudget: +document.getElementById("setEmergency").value,
+      allowance: Math.max(0, +document.getElementById("setAllowance").value),
+      savingsGoal: Math.max(0, +document.getElementById("setSavings").value),
+      collegeBudget: Math.max(0, +document.getElementById("setCollege").value),
+      printoutBudget: Math.max(0, +document.getElementById("setPrintout").value),
+      foodBudget: Math.max(0, +document.getElementById("setFood").value),
+      emergencyBudget: Math.max(0, +document.getElementById("setEmergency").value),
     };
+
+    const allocated = settings.collegeBudget + settings.printoutBudget + settings.foodBudget + settings.emergencyBudget;
+    if (settings.allowance > 0 && allocated > settings.allowance) {
+      showToast(`⚠️ Category budgets total ${formatCurrency(allocated)}, above the allowance of ${formatCurrency(settings.allowance)}.`, "warning");
+    }
+
     saveSettings(settings);
     showToast("⚙️ Settings saved!", "success");
     renderDashboard();
   });
 
-  // Export buttons
   document.getElementById("exportCsv").addEventListener("click", () => exportCSV());
   document.getElementById("exportJson").addEventListener("click", () => exportJSON());
   document.getElementById("importFile").addEventListener("change", importJSON);
-
-  // Resets
   document.getElementById("resetMonth").addEventListener("click", resetMonth);
   document.getElementById("resetAll").addEventListener("click", resetAll);
 }
@@ -74,13 +77,15 @@ function importJSON(e) {
   reader.onload = (ev) => {
     try {
       const data = JSON.parse(ev.target.result);
+      if (!validateBackup(data)) throw new Error("Invalid backup structure");
       if (!confirm("This will replace all current data. Continue?")) return;
       importAll(data);
       showToast("📥 Backup imported successfully!", "success");
       renderDashboard();
       loadSettingsForm();
     } catch (err) {
-      showToast("❌ Invalid backup file", "danger");
+      console.error("Backup import error:", err);
+      showToast("❌ Invalid or incompatible backup file", "danger");
     }
   };
   reader.readAsText(file);
@@ -89,13 +94,22 @@ function importJSON(e) {
 
 /* ---------- Resets ---------- */
 function resetMonth() {
-  if (!confirm("Reset all expenses for the current month? Goals and settings will be kept.")) return;
+  if (!confirm("Reset all expenses and savings allocations for the current month? Goals and settings will be kept.")) return;
   const cm = currentMonthKey();
-  const remaining = getExpenses().filter((e) => monthKey(e.date) !== cm);
-  saveExpenses(remaining);
+  const remainingExpenses = getExpenses().filter((e) => monthKey(e.date) !== cm);
+  saveExpenses(remainingExpenses);
+
+  // Remove only this month's goal contributions and preserve historical savings.
+  const goals = getGoals().map((goal) => ({
+    ...goal,
+    contributions: goal.contributions.filter((c) => monthKey(c.date) !== cm),
+  }));
+  saveGoals(goals);
+
   showToast("🗓️ Current month data reset", "warning");
   renderDashboard();
   renderExpenseList();
+  renderGoals();
 }
 
 function resetAll() {
