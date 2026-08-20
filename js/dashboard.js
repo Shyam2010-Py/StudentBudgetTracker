@@ -2,66 +2,60 @@
    dashboard.js — Dashboard rendering, stats, progress, score
    ========================================================= */
 
-/* Get expenses for the current month */
 function getCurrentMonthExpenses() {
   const cm = currentMonthKey();
   return getExpenses().filter((e) => monthKey(e.date) === cm);
 }
 
-/* Sum of expenses for a given list, optional category filter */
 function sumExpenses(expenses, category = null) {
   return expenses
     .filter((e) => !category || e.category === category)
     .reduce((s, e) => s + Number(e.amount), 0);
 }
 
-/* Today's spending */
 function getTodaySpending() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = currentLocalDate();
   return sumExpenses(getExpenses().filter((e) => e.date === today));
 }
 
-/* Render dashboard */
+function getCurrentMonthBalance(s, monthExp) {
+  return s.allowance - sumExpenses(monthExp) - getCurrentMonthSavings();
+}
+
 function renderDashboard() {
   if (!isOnboarded()) return;
   const s = getSettings();
   const monthExp = getCurrentMonthExpenses();
   const totalSpent = sumExpenses(monthExp);
-  const remaining = Math.max(0, s.allowance - totalSpent);
-  const saved = Math.max(0, remaining);
+  const currentSavings = getCurrentMonthSavings();
+  const totalSaved = getGoalSavings();
+  const rawBalance = getCurrentMonthBalance(s, monthExp);
+  const remaining = Math.max(0, rawBalance);
   const today = getTodaySpending();
   const days = daysRemainingInMonth();
 
-  // Stat cards
   document.getElementById("statAllowance").textContent = formatCurrency(s.allowance);
   document.getElementById("statRemaining").textContent = formatCurrency(remaining);
   document.getElementById("statSavingsGoal").textContent = formatCurrency(s.savingsGoal);
-  document.getElementById("statSaved").textContent = formatCurrency(Math.min(saved, s.savingsGoal || saved));
+  document.getElementById("statSaved").textContent = formatCurrency(totalSaved);
   document.getElementById("statToday").textContent = formatCurrency(today);
   document.getElementById("statDays").textContent = days;
 
-  // Budget progress bars
-  renderBudgetProgress(s, monthExp);
-
-  // Health score
-  renderHealthScore(s, monthExp, totalSpent, remaining);
-
-  // Warnings
-  renderWarnings(s, monthExp, totalSpent);
-
-  // Recent transactions
+  renderBudgetProgress(s, monthExp, currentSavings);
+  renderHealthScore(s, monthExp, totalSpent, currentSavings, rawBalance);
+  renderWarnings(s, monthExp, totalSpent, currentSavings, rawBalance);
   renderRecentTransactions(monthExp);
 }
 
-/* Budget progress bars */
-function renderBudgetProgress(s, monthExp) {
+function renderBudgetProgress(s, monthExp, currentSavings = 0) {
   const container = document.getElementById("budgetProgress");
-  const totalBudget = (s.collegeBudget + s.printoutBudget + s.foodBudget + s.emergencyBudget) || s.allowance;
-  const totalSpent = sumExpenses(monthExp);
-  const overallPct = totalBudget > 0 ? Math.min(100, (totalSpent / totalBudget) * 100) : 0;
+  const allocated = Number(s.collegeBudget) + Number(s.printoutBudget) + Number(s.foodBudget) + Number(s.emergencyBudget);
+  const totalBudget = s.allowance > 0 ? s.allowance : allocated;
+  const totalUsed = sumExpenses(monthExp) + currentSavings;
+  const overallPct = totalBudget > 0 ? Math.min(100, (totalUsed / totalBudget) * 100) : 0;
 
   const items = [
-    { label: "Overall Spending", spent: totalSpent, total: totalBudget, color: overallPct >= 90 ? "danger" : overallPct >= 70 ? "warn" : "" },
+    { label: "Overall Used", spent: totalUsed, total: totalBudget, color: overallPct >= 90 ? "danger" : overallPct >= 70 ? "warn" : "" },
     { label: "🍔 Food", spent: sumExpenses(monthExp, "Food"), total: s.foodBudget },
     { label: "🎓 College", spent: sumExpenses(monthExp, "College"), total: s.collegeBudget },
     { label: "📄 Printouts", spent: sumExpenses(monthExp, "Printouts"), total: s.printoutBudget },
@@ -80,35 +74,29 @@ function renderBudgetProgress(s, monthExp) {
         <div class="progress-bar"><div class="progress-fill ${colorClass}" style="width:${pct}%"></div></div>
       </div>`;
   }).join("");
+
+  if (allocated > s.allowance && s.allowance > 0) {
+    container.insertAdjacentHTML("afterbegin", `<div class="warning danger">⚠️ Your category budgets total ${formatCurrency(allocated)}, which exceeds your allowance of ${formatCurrency(s.allowance)}.</div>`);
+  }
 }
 
-/* Financial health score (0-100) */
-function renderHealthScore(s, monthExp, totalSpent, remaining) {
+function renderHealthScore(s, monthExp, totalSpent, currentSavings, rawBalance) {
   let score = 100;
+  const used = totalSpent + currentSavings;
 
-  // Penalize overspending
   if (s.allowance > 0) {
-    const ratio = totalSpent / s.allowance;
+    const ratio = used / s.allowance;
     if (ratio > 1) score -= 40;
     else if (ratio > 0.9) score -= 25;
     else if (ratio > 0.8) score -= 15;
   }
 
-  // Penalize cravings
   const cravings = monthExp.filter((e) => e.type === "Craving").length;
   score -= Math.min(20, cravings * 2);
 
-  // Penalize overspending in food
-  if (s.foodBudget > 0) {
-    const foodSpent = sumExpenses(monthExp, "Food");
-    if (foodSpent > s.foodBudget) score -= 15;
-  }
-
-  // Reward saving
-  if (remaining > 0 && s.allowance > 0) {
-    const saveRatio = remaining / s.allowance;
-    if (saveRatio > 0.3) score += 5;
-  }
+  if (s.foodBudget > 0 && sumExpenses(monthExp, "Food") > s.foodBudget) score -= 15;
+  if (currentSavings > 0 && s.allowance > 0 && currentSavings / s.allowance > 0.2) score += 5;
+  if (rawBalance < 0) score -= 10;
 
   score = Math.max(0, Math.min(100, Math.round(score)));
   document.getElementById("healthScore").textContent = score;
@@ -123,35 +111,35 @@ function renderHealthScore(s, monthExp, totalSpent, remaining) {
     mid: "Not bad! Watch a few categories to improve.",
     low: "Heads up! You're spending close to your limit.",
   };
-  document.getElementById("healthMessage").textContent =
-    score >= 75 ? msgs.high : score >= 50 ? msgs.mid : msgs.low;
+  document.getElementById("healthMessage").textContent = score >= 75 ? msgs.high : score >= 50 ? msgs.mid : msgs.low;
 }
 
-/* Smart warnings */
-function renderWarnings(s, monthExp, totalSpent) {
+function renderWarnings(s, monthExp, totalSpent, currentSavings, rawBalance) {
   const warnings = [];
+  const used = totalSpent + currentSavings;
+
   if (s.allowance > 0) {
-    const pct = (totalSpent / s.allowance) * 100;
-    if (pct >= 100) warnings.push({ type: "danger", msg: "🚨 You have exceeded your monthly allowance!" });
-    else if (pct >= 80) warnings.push({ type: "danger", msg: `⚠️ You have spent ${pct.toFixed(0)}% of your monthly budget.` });
+    const pct = (used / s.allowance) * 100;
+    if (rawBalance < 0) warnings.push({ type: "danger", msg: `🚨 Your expenses and savings allocations exceed the monthly allowance by ${formatCurrency(Math.abs(rawBalance))}.` });
+    else if (pct >= 80) warnings.push({ type: "danger", msg: `⚠️ You have allocated ${pct.toFixed(0)}% of your monthly allowance.` });
   }
+
   if (s.foodBudget > 0) {
     const foodPct = (sumExpenses(monthExp, "Food") / s.foodBudget) * 100;
     if (foodPct >= 80) warnings.push({ type: "", msg: `🍔 You are close to reaching your food budget (${foodPct.toFixed(0)}%).` });
   }
+
   if (s.emergencyBudget > 0) {
     const emPct = (sumExpenses(monthExp, "Emergency") / s.emergencyBudget) * 100;
     if (emPct >= 90) warnings.push({ type: "danger", msg: "🚨 Emergency budget almost exhausted!" });
   }
+
   const cravingCount = monthExp.filter((e) => e.type === "Craving").length;
   if (cravingCount >= 5) warnings.push({ type: "", msg: `💭 You've had ${cravingCount} cravings this month. Try to cut back!` });
 
-  document.getElementById("warnings").innerHTML = warnings
-    .map((w) => `<div class="warning ${w.type}">${w.msg}</div>`)
-    .join("");
+  document.getElementById("warnings").innerHTML = warnings.map((w) => `<div class="warning ${w.type}">${w.msg}</div>`).join("");
 }
 
-/* Recent transactions (last 5) */
 function renderRecentTransactions(monthExp) {
   const container = document.getElementById("recentTransactions");
   const recent = [...monthExp].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
@@ -159,9 +147,7 @@ function renderRecentTransactions(monthExp) {
     container.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>No expenses yet. Add your first one!</p></div>`;
     return;
   }
-  container.innerHTML = recent
-    .map(
-      (e) => `
+  container.innerHTML = recent.map((e) => `
       <div class="expense-row">
         <div class="expense-icon">${CATEGORY_ICONS[e.category] || "📦"}</div>
         <div class="expense-info">
@@ -169,16 +155,13 @@ function renderRecentTransactions(monthExp) {
           <div class="expense-meta">
             <span>${e.category}</span><span>•</span>
             <span>${e.type === "Craving" ? "💭 Craving" : "✅ Need"}</span><span>•</span>
-            <span>${new Date(e.date).toLocaleDateString()}</span>
+            <span>${new Date(`${e.date}T12:00:00`).toLocaleDateString()}</span>
           </div>
         </div>
         <div class="expense-amount">${formatCurrency(e.amount)}</div>
-      </div>`
-    )
-    .join("");
+      </div>`).join("");
 }
 
-/* HTML escape helper */
 function escapeHtml(str) {
   return String(str || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
