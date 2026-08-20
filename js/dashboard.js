@@ -80,6 +80,18 @@ function renderBudgetProgress(s, monthExp, currentSavings = 0) {
   }
 }
 
+function getCategoryBudgetIssues(s, monthExp) {
+  const categories = [
+    { label: "Food", budget: Number(s.foodBudget), spent: sumExpenses(monthExp, "Food") },
+    { label: "College", budget: Number(s.collegeBudget), spent: sumExpenses(monthExp, "College") },
+    { label: "Printouts", budget: Number(s.printoutBudget), spent: sumExpenses(monthExp, "Printouts") },
+    { label: "Emergency", budget: Number(s.emergencyBudget), spent: sumExpenses(monthExp, "Emergency") },
+  ];
+  return categories
+    .filter((c) => c.budget > 0 && c.spent > c.budget)
+    .map((c) => ({ ...c, pct: (c.spent / c.budget) * 100, over: c.spent - c.budget }));
+}
+
 function renderHealthScore(s, monthExp, totalSpent, currentSavings, rawBalance) {
   let score = 100;
   const used = totalSpent + currentSavings;
@@ -94,7 +106,16 @@ function renderHealthScore(s, monthExp, totalSpent, currentSavings, rawBalance) 
   const cravings = monthExp.filter((e) => e.type === "Craving").length;
   score -= Math.min(20, cravings * 2);
 
-  if (s.foodBudget > 0 && sumExpenses(monthExp, "Food") > s.foodBudget) score -= 15;
+  // Penalize category overspending progressively. A category at 225% of
+  // budget is materially different from being slightly over budget.
+  const categoryIssues = getCategoryBudgetIssues(s, monthExp);
+  categoryIssues.forEach((issue) => {
+    if (issue.pct > 200) score -= 30;
+    else if (issue.pct > 150) score -= 25;
+    else if (issue.pct > 125) score -= 15;
+    else score -= 10;
+  });
+
   if (currentSavings > 0 && s.allowance > 0 && currentSavings / s.allowance > 0.2) score += 5;
   if (rawBalance < 0) score -= 10;
 
@@ -106,12 +127,23 @@ function renderHealthScore(s, monthExp, totalSpent, currentSavings, rawBalance) 
   ring.style.strokeDashoffset = circumference - (score / 100) * circumference;
   ring.style.stroke = score >= 75 ? "var(--success)" : score >= 50 ? "var(--warning)" : "var(--danger)";
 
+  const severeIssue = categoryIssues.find((issue) => issue.pct > 150);
+  const moderateIssue = categoryIssues.find((issue) => issue.pct > 100);
   const msgs = {
     high: "Excellent! You're managing your money like a pro 🌟",
     mid: "Not bad! Watch a few categories to improve.",
     low: "Heads up! You're spending close to your limit.",
   };
-  document.getElementById("healthMessage").textContent = score >= 75 ? msgs.high : score >= 50 ? msgs.mid : msgs.low;
+
+  let message;
+  if (severeIssue) {
+    message = `⚠️ ${severeIssue.label} budget exceeded by ${formatCurrency(severeIssue.over)} (${Math.round(severeIssue.pct)}% used). This is significantly affecting your financial health.`;
+  } else if (moderateIssue) {
+    message = `⚠️ ${moderateIssue.label} budget exceeded by ${formatCurrency(moderateIssue.over)}. Review this category before spending more.`;
+  } else {
+    message = score >= 75 ? msgs.high : score >= 50 ? msgs.mid : msgs.low;
+  }
+  document.getElementById("healthMessage").textContent = message;
 }
 
 function renderWarnings(s, monthExp, totalSpent, currentSavings, rawBalance) {
@@ -124,14 +156,23 @@ function renderWarnings(s, monthExp, totalSpent, currentSavings, rawBalance) {
     else if (pct >= 80) warnings.push({ type: "danger", msg: `⚠️ You have allocated ${pct.toFixed(0)}% of your monthly allowance.` });
   }
 
-  if (s.foodBudget > 0) {
+  const categoryIssues = getCategoryBudgetIssues(s, monthExp);
+  categoryIssues.forEach((issue) => {
+    if (issue.pct > 150) {
+      warnings.push({ type: "danger", msg: `🚨 ${issue.label} spending is ${Math.round(issue.pct)}% of budget — ${formatCurrency(issue.over)} over your limit.` });
+    } else {
+      warnings.push({ type: "danger", msg: `⚠️ ${issue.label} budget exceeded by ${formatCurrency(issue.over)} (${Math.round(issue.pct)}% used).` });
+    }
+  });
+
+  if (s.foodBudget > 0 && !categoryIssues.some((issue) => issue.label === "Food")) {
     const foodPct = (sumExpenses(monthExp, "Food") / s.foodBudget) * 100;
     if (foodPct >= 80) warnings.push({ type: "", msg: `🍔 You are close to reaching your food budget (${foodPct.toFixed(0)}%).` });
   }
 
   if (s.emergencyBudget > 0) {
     const emPct = (sumExpenses(monthExp, "Emergency") / s.emergencyBudget) * 100;
-    if (emPct >= 90) warnings.push({ type: "danger", msg: "🚨 Emergency budget almost exhausted!" });
+    if (emPct >= 90 && !categoryIssues.some((issue) => issue.label === "Emergency")) warnings.push({ type: "danger", msg: "🚨 Emergency budget almost exhausted!" });
   }
 
   const cravingCount = monthExp.filter((e) => e.type === "Craving").length;
