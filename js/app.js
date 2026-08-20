@@ -8,7 +8,6 @@ const CATEGORY_ICONS = {
   Shopping: "🛍️", Emergency: "🚨", Other: "📦",
 };
 
-/* ---------- Toast ---------- */
 function showToast(message, type = "") {
   const toast = document.getElementById("toast");
   toast.textContent = message;
@@ -16,7 +15,6 @@ function showToast(message, type = "") {
   setTimeout(() => toast.classList.remove("show"), 2800);
 }
 
-/* ---------- Navigation ---------- */
 function navigateTo(sectionId) {
   document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
@@ -25,7 +23,6 @@ function navigateTo(sectionId) {
   const navItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
   if (navItem) navItem.classList.add("active");
 
-  // Refresh per-section data
   if (sectionId === "dashboard") renderDashboard();
   if (sectionId === "history") renderExpenseList();
   if (sectionId === "analytics") renderAnalytics();
@@ -33,12 +30,10 @@ function navigateTo(sectionId) {
   if (sectionId === "report") renderReport();
   if (sectionId === "settings") loadSettingsForm();
 
-  // Close mobile sidebar
   document.getElementById("sidebar").classList.remove("open");
   document.getElementById("sidebarOverlay").classList.remove("show");
 }
 
-/* ---------- Sidebar ---------- */
 function setupSidebar() {
   const toggle = document.getElementById("menuToggle");
   const sidebar = document.getElementById("sidebar");
@@ -59,7 +54,6 @@ function setupSidebar() {
   });
 }
 
-/* ---------- Theme ---------- */
 function setupTheme() {
   const theme = getTheme();
   document.documentElement.setAttribute("data-theme", theme);
@@ -74,7 +68,6 @@ function setupTheme() {
   });
 }
 
-/* ---------- Onboarding ---------- */
 function setupOnboarding() {
   const modal = document.getElementById("onboardingModal");
   if (!isOnboarded()) modal.classList.add("show");
@@ -82,22 +75,26 @@ function setupOnboarding() {
   document.getElementById("onboardingForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const settings = {
-      allowance: +document.getElementById("setupAllowance").value,
-      savingsGoal: +document.getElementById("setupSavings").value,
-      collegeBudget: +document.getElementById("setupCollege").value,
-      printoutBudget: +document.getElementById("setupPrintout").value,
-      foodBudget: +document.getElementById("setupFood").value,
-      emergencyBudget: +document.getElementById("setupEmergency").value || 0,
+      allowance: Math.max(0, +document.getElementById("setupAllowance").value),
+      savingsGoal: Math.max(0, +document.getElementById("setupSavings").value),
+      collegeBudget: Math.max(0, +document.getElementById("setupCollege").value),
+      printoutBudget: Math.max(0, +document.getElementById("setupPrintout").value),
+      foodBudget: Math.max(0, +document.getElementById("setupFood").value),
+      emergencyBudget: Math.max(0, +document.getElementById("setupEmergency").value || 0),
     };
+    const allocated = settings.collegeBudget + settings.printoutBudget + settings.foodBudget + settings.emergencyBudget;
     saveSettings(settings);
     setOnboarded();
     modal.classList.remove("show");
-    showToast("Welcome! Your tracker is ready 🎉", "success");
+    if (allocated > settings.allowance && settings.allowance > 0) {
+      showToast(`⚠️ Category budgets exceed allowance by ${formatCurrency(allocated - settings.allowance)}.`, "warning");
+    } else {
+      showToast("Welcome! Your tracker is ready 🎉", "success");
+    }
     renderDashboard();
   });
 }
 
-/* ---------- Greeting ---------- */
 function updateGreeting() {
   const hour = new Date().getHours();
   let g = "Welcome";
@@ -107,8 +104,15 @@ function updateGreeting() {
   document.getElementById("dashGreeting").textContent = `${g}! Here's your money overview.`;
 }
 
-/* ---------- Init ---------- */
+function updateProductIdentity() {
+  const brand = document.querySelector(".brand-name");
+  const footer = document.querySelector(".sidebar-footer p");
+  if (brand) brand.textContent = "PocketPilot";
+  if (footer) footer.textContent = `v${APP_VERSION}`;
+}
+
 function init() {
+  updateProductIdentity();
   setupTheme();
   setupSidebar();
   setupOnboarding();
