@@ -1,5 +1,32 @@
 # 📝 Changelog
 
+## [2.1.0] — 2026-08-20
+### 🛠️ Correctness & Reliability Release
+
+#### 🐛 Fixed
+- **Savings accounting** — remaining balance no longer gets incorrectly reported as money saved.
+- **Goal contributions** — savings are stored as dated allocations and are deducted from the current month's spendable balance.
+- **Goal deletion** — deleting a goal explicitly releases its allocated savings.
+- **Monthly reset** — current-month goal contributions are reset together with current-month expenses.
+- **Timezone handling** — date inputs and today's spending now use the user's local calendar date instead of UTC.
+- **Budget allocation** — category budgets are compared against the actual allowance and over-allocation is surfaced clearly.
+- **Backup import** — imported JSON is structurally validated before replacing local data.
+- **Expense validation** — invalid/zero/negative expense amounts are rejected.
+- **PDF currency output** — exported PDFs use `INR` instead of relying on the default PDF font to render the ₹ glyph.
+
+#### 📱 PWA
+- Fixed service-worker icon cache entries to match the SVG icons actually used by the manifest.
+- Added Chart.js and jsPDF to the service-worker precache list so offline use is more reliable after an online installation.
+- Bumped service-worker cache version to `2.1.0`.
+- Added application version metadata to the manifest.
+
+#### 🎨 Consistency
+- PocketPilot is now the runtime product name shown in the header.
+- Sidebar version is sourced from a single application version constant.
+- README updated to document the corrected money model and offline behavior.
+
+---
+
 ## [2.0.0] — 2026-07-29
 ### 🚀 Major Release — PWA Transformation
 
