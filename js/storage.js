@@ -3,6 +3,8 @@
    Centralized data access for the entire app.
    ========================================================= */
 
+const APP_VERSION = "2.1.0";
+
 const STORAGE_KEYS = {
   settings: "sbt_settings",
   expenses: "sbt_expenses",
@@ -83,18 +85,43 @@ function deleteExpense(id) {
 }
 
 /* ---------- Goals ---------- */
+function normalizeGoal(goal) {
+  const contributions = Array.isArray(goal.contributions)
+    ? goal.contributions
+        .map((c) => ({ amount: Number(c.amount) || 0, date: c.date || currentLocalDate() }))
+        .filter((c) => c.amount > 0)
+    : [];
+
+  // Backward compatibility for goals created before contribution history existed.
+  if (!contributions.length && Number(goal.saved) > 0) {
+    contributions.push({
+      amount: Number(goal.saved),
+      date: goal.createdAt ? String(goal.createdAt).slice(0, 10) : currentLocalDate(),
+      legacy: true,
+    });
+  }
+
+  return {
+    ...goal,
+    target: Number(goal.target) || 0,
+    contributions,
+    saved: contributions.reduce((sum, c) => sum + Number(c.amount), 0),
+  };
+}
+
 function getGoals() {
-  return read(STORAGE_KEYS.goals, []);
+  return read(STORAGE_KEYS.goals, []).map(normalizeGoal);
 }
 
 function saveGoals(goals) {
-  return write(STORAGE_KEYS.goals, goals);
+  return write(STORAGE_KEYS.goals, goals.map(normalizeGoal));
 }
 
 function addGoal(goal) {
   const goals = getGoals();
   goal.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   goal.saved = 0;
+  goal.contributions = [];
   goal.createdAt = new Date().toISOString();
   goals.push(goal);
   saveGoals(goals);
@@ -105,7 +132,7 @@ function updateGoal(id, updates) {
   const goals = getGoals();
   const idx = goals.findIndex((g) => g.id === id);
   if (idx === -1) return null;
-  goals[idx] = { ...goals[idx], ...updates };
+  goals[idx] = normalizeGoal({ ...goals[idx], ...updates });
   saveGoals(goals);
   return goals[idx];
 }
@@ -113,6 +140,31 @@ function updateGoal(id, updates) {
 function deleteGoal(id) {
   const goals = getGoals().filter((g) => g.id !== id);
   saveGoals(goals);
+}
+
+/* ---------- Savings helpers ---------- */
+function getGoalSavings() {
+  return getGoals().reduce((sum, goal) => sum + Number(goal.saved || 0), 0);
+}
+
+function getCurrentMonthSavings() {
+  const cm = currentMonthKey();
+  return getGoals().reduce(
+    (sum, goal) => sum + goal.contributions
+      .filter((c) => monthKey(c.date) === cm)
+      .reduce((s, c) => s + Number(c.amount), 0),
+    0
+  );
+}
+
+function getTodaySavings() {
+  const today = currentLocalDate();
+  return getGoals().reduce(
+    (sum, goal) => sum + goal.contributions
+      .filter((c) => c.date === today)
+      .reduce((s, c) => s + Number(c.amount), 0),
+    0
+  );
 }
 
 /* ---------- Theme ---------- */
@@ -137,7 +189,7 @@ function setOnboarded() {
 /* ---------- Backup / Restore ---------- */
 function exportAll() {
   return {
-    version: "1.0.0",
+    version: APP_VERSION,
     exportedAt: new Date().toISOString(),
     settings: getSettings(),
     expenses: getExpenses(),
@@ -145,29 +197,63 @@ function exportAll() {
   };
 }
 
+function validateBackup(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return false;
+  if (data.settings && (typeof data.settings !== "object" || Array.isArray(data.settings))) return false;
+  if (data.expenses && !Array.isArray(data.expenses)) return false;
+  if (data.goals && !Array.isArray(data.goals)) return false;
+
+  if (Array.isArray(data.expenses)) {
+    for (const e of data.expenses) {
+      if (!e || typeof e !== "object" || !String(e.name || "").trim()) return false;
+      if (!Number.isFinite(Number(e.amount)) || Number(e.amount) < 0) return false;
+      if (!e.date || Number.isNaN(new Date(e.date).getTime())) return false;
+    }
+  }
+
+  if (Array.isArray(data.goals)) {
+    for (const g of data.goals) {
+      if (!g || typeof g !== "object" || !String(g.name || "").trim()) return false;
+      if (!Number.isFinite(Number(g.target)) || Number(g.target) <= 0) return false;
+      if (g.contributions && !Array.isArray(g.contributions)) return false;
+    }
+  }
+  return true;
+}
+
 function importAll(data) {
-  if (data.settings) saveSettings(data.settings);
+  if (!validateBackup(data)) throw new Error("Invalid backup structure");
+  if (data.settings) saveSettings({ ...defaultSettings, ...data.settings });
   if (data.expenses) saveExpenses(data.expenses);
   if (data.goals) saveGoals(data.goals);
 }
 
 /* ---------- Utility ---------- */
+function currentLocalDate(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function formatCurrency(n) {
   return "₹" + (Number(n) || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 }
 
 function monthKey(dateStr) {
-  const d = new Date(dateStr);
+  const d = typeof dateStr === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+    ? new Date(`${dateStr}T12:00:00`)
+    : new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "";
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function currentMonthKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return monthKey(currentLocalDate());
 }
 
 function daysRemainingInMonth() {
   const now = new Date();
   const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  return last - now.getDate();
+  return Math.max(0, last - now.getDate());
 }
