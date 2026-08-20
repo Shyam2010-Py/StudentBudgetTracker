@@ -2,38 +2,35 @@
    expenses.js — Add, edit, delete, search, filter expenses
    ========================================================= */
 
-/* ----- Add Expense Form ----- */
 function setupExpenseForm() {
   const dateInput = document.getElementById("expDate");
-  dateInput.value = new Date().toISOString().slice(0, 10);
+  dateInput.value = currentLocalDate();
 
   document.getElementById("expenseForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const expense = {
       name: document.getElementById("expName").value.trim(),
-      amount: +document.getElementById("expAmount").value,
+      amount: Number(document.getElementById("expAmount").value),
       category: document.getElementById("expCategory").value,
       type: document.getElementById("expType").value,
       date: document.getElementById("expDate").value,
       notes: document.getElementById("expNotes").value.trim(),
     };
-    if (!expense.name || !expense.amount) return;
+    if (!expense.name || !Number.isFinite(expense.amount) || expense.amount <= 0 || !expense.date) return;
 
-    // Smart warning for craving
     if (expense.type === "Craving") {
-      const ok = confirm(`💭 This expense is marked as a craving. Are you sure you want to continue?`);
+      const ok = confirm("💭 This expense is marked as a craving. Are you sure you want to continue?");
       if (!ok) return;
     }
 
     addExpense(expense);
     e.target.reset();
-    dateInput.value = new Date().toISOString().slice(0, 10);
+    dateInput.value = currentLocalDate();
     showToast("✅ Expense added successfully!", "success");
     renderDashboard();
   });
 }
 
-/* ----- History Filters ----- */
 function setupHistoryFilters() {
   document.getElementById("searchExp").addEventListener("input", renderExpenseList);
   document.getElementById("filterCategory").addEventListener("change", renderExpenseList);
@@ -46,7 +43,6 @@ function setupHistoryFilters() {
   });
 }
 
-/* ----- Render Filtered Expense List ----- */
 function renderExpenseList() {
   const container = document.getElementById("expenseList");
   const search = document.getElementById("searchExp").value.toLowerCase();
@@ -54,7 +50,7 @@ function renderExpenseList() {
   const month = document.getElementById("filterMonth").value;
 
   let expenses = getExpenses();
-  if (search) expenses = expenses.filter((e) => e.name.toLowerCase().includes(search) || (e.notes || "").toLowerCase().includes(search));
+  if (search) expenses = expenses.filter((e) => String(e.name || "").toLowerCase().includes(search) || String(e.notes || "").toLowerCase().includes(search));
   if (category !== "all") expenses = expenses.filter((e) => e.category === category);
   if (month) expenses = expenses.filter((e) => monthKey(e.date) === month);
 
@@ -66,13 +62,8 @@ function renderExpenseList() {
   }
 
   const total = expenses.reduce((s, e) => s + Number(e.amount), 0);
-  container.innerHTML =
-    `<div style="padding:0.6rem 0.9rem;background:var(--bg-elev);border-radius:10px;margin-bottom:0.6rem;font-weight:600;">
-      ${expenses.length} expense(s) • Total: ${formatCurrency(total)}
-    </div>` +
-    expenses
-      .map(
-        (e) => `
+  container.innerHTML = `<div style="padding:0.6rem 0.9rem;background:var(--bg-elev);border-radius:10px;margin-bottom:0.6rem;font-weight:600;">${expenses.length} expense(s) • Total: ${formatCurrency(total)}</div>` +
+    expenses.map((e) => `
       <div class="expense-row">
         <div class="expense-icon">${CATEGORY_ICONS[e.category] || "📦"}</div>
         <div class="expense-info">
@@ -80,7 +71,7 @@ function renderExpenseList() {
           <div class="expense-meta">
             <span>${e.category}</span><span>•</span>
             <span>${e.type === "Craving" ? "💭 Craving" : "✅ Need"}</span><span>•</span>
-            <span>${new Date(e.date).toLocaleDateString()}</span>
+            <span>${new Date(`${e.date}T12:00:00`).toLocaleDateString()}</span>
             ${e.notes ? `<span>• 📝 ${escapeHtml(e.notes)}</span>` : ""}
           </div>
         </div>
@@ -89,12 +80,9 @@ function renderExpenseList() {
           <button class="action-btn" onclick="openEditModal('${e.id}')">✏️</button>
           <button class="action-btn delete" onclick="confirmDelete('${e.id}')">🗑️</button>
         </div>
-      </div>`
-      )
-      .join("");
+      </div>`).join("");
 }
 
-/* ----- Delete ----- */
 function confirmDelete(id) {
   if (confirm("Delete this expense? This cannot be undone.")) {
     deleteExpense(id);
@@ -104,7 +92,6 @@ function confirmDelete(id) {
   }
 }
 
-/* ----- Edit Modal ----- */
 function openEditModal(id) {
   const exp = getExpenses().find((e) => e.id === id);
   if (!exp) return;
@@ -124,10 +111,14 @@ function setupEditForm() {
   });
   document.getElementById("editForm").addEventListener("submit", (e) => {
     e.preventDefault();
+    const amount = Number(document.getElementById("editAmount").value);
+    const name = document.getElementById("editName").value.trim();
+    if (!name || !Number.isFinite(amount) || amount <= 0) return;
+
     const id = document.getElementById("editId").value;
     updateExpense(id, {
-      name: document.getElementById("editName").value.trim(),
-      amount: +document.getElementById("editAmount").value,
+      name,
+      amount,
       category: document.getElementById("editCategory").value,
       type: document.getElementById("editType").value,
       date: document.getElementById("editDate").value,
