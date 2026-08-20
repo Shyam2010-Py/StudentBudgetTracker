@@ -79,6 +79,10 @@ function setupReportExport() {
   document.getElementById("downloadCsv").addEventListener("click", exportCSV);
 }
 
+function pdfCurrency(n) {
+  return "INR " + (Number(n) || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+}
+
 function downloadPDF() {
   if (!window.jspdf || !window.jspdf.jsPDF) {
     showToast("📄 PDF export needs jsPDF to be loaded once while online.", "warning");
@@ -105,10 +109,10 @@ function downloadPDF() {
   doc.setTextColor(30);
   let y = 38;
   const lines = [
-    `Total Allowance: ${formatCurrency(s.allowance)}`,
-    `Total Expenses: ${formatCurrency(totalSpent)}`,
-    `Saved to Goals This Month: ${formatCurrency(savings)}`,
-    `Remaining Balance: ${formatCurrency(remaining)}`,
+    `Total Allowance: ${pdfCurrency(s.allowance)}`,
+    `Total Expenses: ${pdfCurrency(totalSpent)}`,
+    `Saved to Goals This Month: ${pdfCurrency(savings)}`,
+    `Remaining Balance: ${pdfCurrency(remaining)}`,
     `Number of Expenses: ${monthExp.length}`,
   ];
   lines.forEach((l) => { doc.text(l, 14, y); y += 7; });
@@ -120,7 +124,7 @@ function downloadPDF() {
   y += 7;
   doc.setFontSize(11);
   doc.setTextColor(30);
-  CATEGORIES.forEach((c) => { doc.text(`${c}: ${formatCurrency(sumExpenses(monthExp, c))}`, 14, y); y += 6; });
+  CATEGORIES.forEach((c) => { doc.text(`${c}: ${pdfCurrency(sumExpenses(monthExp, c))}`, 14, y); y += 6; });
 
   y += 5;
   doc.setFontSize(13);
@@ -132,7 +136,7 @@ function downloadPDF() {
   const recent = [...monthExp].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 15);
   if (recent.length === 0) doc.text("No transactions this month.", 14, y);
   recent.forEach((e) => {
-    const line = `${e.date} • ${e.name} • ${e.category} • ${formatCurrency(e.amount)}`;
+    const line = `${e.date} • ${e.name} • ${e.category} • ${pdfCurrency(e.amount)}`;
     if (y > 275) { doc.addPage(); y = 20; }
     doc.text(line, 14, y);
     y += 5.5;
