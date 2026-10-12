@@ -1,6 +1,3 @@
-/* =========================================================
-   app.js — Core app: navigation, theme, onboarding, init
-   ========================================================= */
 
 const CATEGORIES = ["Food", "College", "Printouts", "Transport", "Shopping", "Emergency", "Other"];
 const CATEGORY_ICONS = {
