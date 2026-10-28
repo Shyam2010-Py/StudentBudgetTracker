@@ -8,10 +8,24 @@ function setupGoalForm() {
     const name = document.getElementById("goalName").value.trim();
     const target = +document.getElementById("goalTarget").value;
     if (!name || !target) return;
-    addGoal({ name, target });
+    const goal = addGoal({ name, target });
+    if (!goal) {
+      showToast("Could not save this goal. Check available browser storage.", "danger");
+      return;
+    }
     e.target.reset();
-    showToast(`🎯 Goal "${name}" added!`, "success");
+    showToast("Savings goal added.", "success");
     renderGoals();
+  });
+  const goalList = document.getElementById("goalList");
+  goalList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-goal-delete]");
+    if (button) removeGoal(button.dataset.goalDelete);
+  });
+  goalList.addEventListener("submit", (event) => {
+    const form = event.target.closest("form[data-goal-contribute]");
+    if (!form) return;
+    contributeToGoal(event, form.dataset.goalContribute);
   });
 }
 
@@ -29,7 +43,7 @@ function renderGoals() {
       <div class="card goal-card">
         <div class="goal-header">
           <div class="goal-name">${escapeHtml(g.name)}</div>
-          <button class="action-btn delete" onclick="removeGoal('${g.id}')">🗑️</button>
+          <button class="action-btn delete" type="button" data-goal-delete="${escapeHtml(g.id)}" aria-label="Delete goal ${escapeHtml(g.name)}">🗑️</button>
         </div>
         <div class="progress-bar"><div class="progress-fill ${colorClass}" style="width:${pct}%"></div></div>
         <div class="goal-amounts">
@@ -37,7 +51,7 @@ function renderGoals() {
           <span class="goal-percent">${pct.toFixed(0)}%</span>
         </div>
         ${pct >= 100 ? `<div class="goal-complete">🎉 Goal reached!</div>` : `
-        <form class="contribute-form" onsubmit="contributeToGoal(event, '${g.id}')">
+        <form class="contribute-form" data-goal-contribute="${escapeHtml(g.id)}">
           <input type="number" min="1" step="0.01" max="${Math.max(0.01, g.target - g.saved).toFixed(2)}" placeholder="Add amount" required />
           <button type="submit" class="btn-primary">+ Add</button>
         </form>`}
@@ -68,8 +82,12 @@ function contributeToGoal(e, id) {
 
   const contributions = Array.isArray(goal.contributions) ? [...goal.contributions] : [];
   contributions.push({ amount, date: currentLocalDate() });
-  updateGoal(id, { contributions });
-  showToast(`💰 Added ${formatCurrency(amount)} to "${goal.name}"!`, "success");
+  const updated = updateGoal(id, { contributions });
+  if (!updated) {
+    showToast("Could not save this contribution. Your previous savings were kept.", "danger");
+    return;
+  }
+  showToast("Savings contribution added.", "success");
   renderGoals();
   renderDashboard();
 }
@@ -82,8 +100,11 @@ function removeGoal(id) {
     ? `Delete this goal and release ${formatCurrency(saved)} back to your available balance?`
     : "Delete this goal?";
   if (confirm(message)) {
-    deleteGoal(id);
-    showToast("🗑️ Goal removed and saved amount released", "warning");
+    if (!deleteGoal(id)) {
+      showToast("Could not remove this goal. Your data was kept.", "danger");
+      return;
+    }
+    showToast("Goal removed and its saved amount released.", "warning");
     renderGoals();
     renderDashboard();
   }
