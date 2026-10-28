@@ -55,7 +55,7 @@ function exportCSV() {
   const csvCell = (value) => {
     let text = String(value ?? "");
     // Neutralize spreadsheet formulas before quoting the CSV cell.
-    if (/^[\\s\\u0000-\\u001f]*[=+@-]/.test(text)) text = "'" + text;
+    if (/^[\s\u0000-\u001f]*[=+@-]/.test(text)) text = "'" + text;
     return '"' + text.replace(/"/g, '""') + '"';
   };
   const rows = expenses.map((e) => [
