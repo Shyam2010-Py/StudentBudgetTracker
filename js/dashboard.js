@@ -40,6 +40,10 @@ function renderDashboard() {
   document.getElementById("statSaved").textContent = formatCurrency(totalSaved);
   document.getElementById("statToday").textContent = formatCurrency(today);
   document.getElementById("statDays").textContent = days;
+  // Spread the remaining spendable balance across today and the remaining calendar days.
+  const daysIncludingToday = Math.max(1, days + 1);
+  const dailyBudget = s.allowance > 0 ? Math.max(0, rawBalance) / daysIncludingToday : 0;
+  document.getElementById("statDailyBudget").textContent = formatCurrency(dailyBudget);
 
   renderBudgetProgress(s, monthExp, currentSavings);
   renderHealthScore(s, monthExp, totalSpent, currentSavings, rawBalance);
