@@ -204,8 +204,66 @@ on conflict (id) do nothing;
         or jsonb_typeof(item.value -> 'target') is distinct from 'number'
         or (item.value ->> 'target')::numeric <= 0
         or (item.value ? 'contributions' and jsonb_typeof(item.value -> 'contributions') is distinct from 'array')
+        or (jsonb_typeof(item.value -> 'contributions') = 'array' and jsonb_array_length(item.value -> 'contributions') > 5000)
   ) then
     raise exception 'Invalid goal record' using errcode = '22023';
+  end if;
+
+  if exists (
+    select 1
+      from jsonb_array_elements(p_goals) as goal(value)
+      cross join lateral jsonb_array_elements(
+        case when jsonb_typeof(goal.value -> 'contributions') = 'array'
+             then goal.value -> 'contributions' else '[]'::jsonb end
+      ) as contribution(value)
+     where jsonb_typeof(contribution.value) is distinct from 'object'
+        or jsonb_typeof(contribution.value -> 'amount') is distinct from 'number'
+        or (contribution.value ->> 'amount')::numeric <= 0
+        or coalesce(contribution.value ->> 'date', '') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}
+
+  update public.user_state as s
+     set settings = p_settings,
+         expenses = p_expenses,
+         goals = p_goals,
+         revision = s.revision + 1,
+         updated_at = now()
+   where s.user_id = v_user_id
+     and s.revision = p_expected_revision
+  returning s.revision, s.updated_at into v_revision, v_updated_at;
+
+  if found then
+    return query select v_revision, v_updated_at;
+    return;
+  end if;
+
+  if p_expected_revision = 0 then
+    insert into public.user_state (user_id, settings, expenses, goals, schema_version, revision, updated_at)
+    values (v_user_id, p_settings, p_expenses, p_goals, 1, 1, now())
+    on conflict (user_id) do nothing
+    returning user_state.revision, user_state.updated_at into v_revision, v_updated_at;
+
+    if found then
+      return query select v_revision, v_updated_at;
+      return;
+    end if;
+  end if;
+
+  raise exception 'PocketPilot cloud state changed elsewhere; reload and merge before saving'
+    using errcode = '40001';
+end;
+$$;
+
+revoke all on function public.save_pocketpilot_state(jsonb, jsonb, jsonb, bigint) from public, anon;
+grant execute on function public.save_pocketpilot_state(jsonb, jsonb, jsonb, bigint) to authenticated;
+
+-- Backfill profiles for existing Auth users without changing their credentials.
+insert into public.profiles (id, email, display_name)
+select id, email, coalesce(raw_user_meta_data ->> 'display_name', '')
+from auth.users
+on conflict (id) do nothing;
+
+  ) then
+    raise exception 'Invalid goal contribution' using errcode = '22023';
   end if;
 
   update public.user_state as s
