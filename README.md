@@ -59,8 +59,6 @@ StudentBudgetTracker/
 ├── service-worker.js
 ├── supabase/
 │   └── migrations/20261028000100_pocketpilot_cloud_sync.sql
-├── js/supabase-config.js
-├── js/cloud-sync.js
 ├── offline.html
 ├── css/
 │   └── styles.css
