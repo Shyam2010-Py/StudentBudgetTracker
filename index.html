@@ -407,10 +407,39 @@
   </div>
 </div>
 
+<!-- AUTH MODAL -->
+<div id="authModal" class="modal" aria-labelledby="authTitle">
+  <div class="modal-content auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <h2 id="authTitle">Sign in to PocketPilot</h2>
+    <p id="authNote" class="muted">Sign in to sync your budget securely across devices.</p>
+    <form id="authForm" class="form-grid">
+      <div class="input-group full">
+        <label for="authEmail">Email address</label>
+        <input id="authEmail" type="email" autocomplete="email" maxlength="254" required />
+      </div>
+      <div id="authPassword" class="input-group full">
+        <label for="authPasswordInput">Password</label>
+        <input id="authPasswordInput" type="password" autocomplete="current-password" minlength="8" maxlength="128" required />
+      </div>
+      <p id="authMessage" class="auth-message full" role="status" aria-live="polite"></p>
+      <div class="form-actions full">
+        <button id="authSubmit" type="submit" class="btn-primary">Sign in</button>
+        <button id="authCancel" type="button" class="btn-ghost">Cancel</button>
+      </div>
+    </form>
+    <div class="auth-links">
+      <button id="authModeToggle" type="button" class="btn-ghost">New here? Create an account</button>
+      <button id="authRecovery" type="button" class="btn-ghost">Forgot password?</button>
+    </div>
+  </div>
+</div>
 <!-- TOAST -->
 <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="js/storage.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/cloud-sync.js"></script>
 <script src="js/pwa.js"></script>
 <script src="js/app.js"></script>
 <script src="js/dashboard.js"></script>
