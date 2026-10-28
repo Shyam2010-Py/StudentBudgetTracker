@@ -133,12 +133,15 @@
 
   function mergeById(remoteItems, localItems, mergeItem) {
     const merged = new Map();
+    const keyFor = (item) => item && item.id != null
+      ? String(item.id)
+      : "legacy:" + JSON.stringify(item);
     (Array.isArray(remoteItems) ? remoteItems : []).forEach((item) => {
-      if (item && item.id != null) merged.set(String(item.id), item);
+      if (item) merged.set(keyFor(item), item);
     });
     (Array.isArray(localItems) ? localItems : []).forEach((item) => {
-      if (!item || item.id == null) return;
-      const key = String(item.id);
+      if (!item) return;
+      const key = keyFor(item);
       const previous = merged.get(key);
       merged.set(key, previous && mergeItem ? mergeItem(previous, item) : item);
     });
@@ -148,9 +151,11 @@
   function mergeGoals(remoteGoals, localGoals) {
     return mergeById(remoteGoals, localGoals, (remote, local) => {
       const contributions = new Map();
-      (remote.contributions || []).concat(local.contributions || []).forEach((entry) => {
+      (remote.contributions || []).concat(local.contributions || []).forEach((entry, index) => {
         if (!entry || !entry.date || !Number.isFinite(Number(entry.amount))) return;
-        const key = String(entry.date) + "|" + Number(entry.amount) + "|" + Boolean(entry.legacy);
+        const key = entry.id != null
+          ? "id:" + String(entry.id)
+          : "legacy:" + String(entry.date) + "|" + Number(entry.amount) + "|" + index;
         if (!contributions.has(key) || !entry.legacy) contributions.set(key, entry);
       });
       return {
