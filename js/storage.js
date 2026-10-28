@@ -233,24 +233,46 @@ function getTodaySavings() {
 
 /* ---------- Theme ---------- */
 function getTheme() {
-  const theme = read(STORAGE_KEYS.theme, "light");
-  return theme === "dark" ? "dark" : "light";
+  try {
+    return localStorage.getItem(STORAGE_KEYS.theme) === "dark" ? "dark" : "light";
+  } catch (error) {
+    console.error("Theme read error:", error);
+    return "light";
+  }
 }
 
 function setTheme(theme) {
   const safeTheme = theme === "dark" ? "dark" : "light";
-  const saved = write(STORAGE_KEYS.theme, safeTheme);
+  let saved = false;
+  try {
+    // Preserve the original plain-string format used by earlier releases.
+    localStorage.setItem(STORAGE_KEYS.theme, safeTheme);
+    saved = true;
+  } catch (error) {
+    console.error("Theme write error:", error);
+  }
   document.documentElement.setAttribute("data-theme", safeTheme);
   return saved;
 }
 
 /* ---------- Onboarding ---------- */
 function isOnboarded() {
-  return read(STORAGE_KEYS.onboarding, "0") === "1";
+  try {
+    return localStorage.getItem(STORAGE_KEYS.onboarding) === "1";
+  } catch (error) {
+    console.error("Onboarding status read error:", error);
+    return false;
+  }
 }
 
 function setOnboarded() {
-  return write(STORAGE_KEYS.onboarding, "1");
+  try {
+    localStorage.setItem(STORAGE_KEYS.onboarding, "1");
+    return true;
+  } catch (error) {
+    console.error("Onboarding status write error:", error);
+    return false;
+  }
 }
 
 /* ---------- Backup / Restore ---------- */
