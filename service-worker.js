@@ -8,6 +8,11 @@ const CACHE_VERSION = CACHE_PREFIX + "v2.3.0";
 const STATIC_CACHE = CACHE_VERSION + "-static";
 const RUNTIME_CACHE = CACHE_VERSION + "-runtime";
 const OFFLINE_URL = "offline.html";
+const LEGACY_CACHE_NAMES = [
+  "pocketpilot-v2.0.0-static", "pocketpilot-v2.0.0-runtime",
+  "pocketpilot-v2.1.0-static", "pocketpilot-v2.1.0-runtime",
+  "pocketpilot-v2.2.0-static", "pocketpilot-v2.2.0-runtime",
+];
 
 const APP_SHELL = [
   "./",
@@ -54,7 +59,7 @@ self.addEventListener("activate", (event) => {
     // Delete only older caches owned by this application.
     await Promise.all(
       keys
-        .filter((key) => key.startsWith(CACHE_PREFIX) && !key.startsWith(CACHE_VERSION))
+        .filter((key) => (key.startsWith(CACHE_PREFIX) && !key.startsWith(CACHE_VERSION)) || LEGACY_CACHE_NAMES.includes(key))
         .map((key) => caches.delete(key))
     );
     await self.clients.claim();
