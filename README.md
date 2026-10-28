@@ -89,6 +89,16 @@ StudentBudgetTracker/
 
 > ℹ️ The first online visit is required before offline operation can work. After the service worker has cached the application shell and CDN dependencies, the main app remains usable offline.
 
+## 🧪 Quality checks
+
+Run the storage and backup regression tests with Node.js 18 or later:
+
+```bash
+node --test tests/storage.test.js
+```
+
+The tests cover valid/invalid expense records, backup validation, rollback after a simulated storage failure, and compatibility with existing theme/onboarding values.
+
 ## 📖 Documentation
 
 See [GUIDE.md](./GUIDE.md) for full developer & user documentation.
