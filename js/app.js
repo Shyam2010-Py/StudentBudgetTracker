@@ -132,6 +132,7 @@ function init() {
   setupGoalForm();
   setupSettings();
   setupReportExport();
+  if (typeof window.initializeCloudSync === "function") window.initializeCloudSync();
   if (isOnboarded()) renderDashboard();
 }
 
