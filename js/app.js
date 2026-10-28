@@ -83,8 +83,14 @@ function setupOnboarding() {
       emergencyBudget: Math.max(0, +document.getElementById("setupEmergency").value || 0),
     };
     const allocated = settings.collegeBudget + settings.printoutBudget + settings.foodBudget + settings.emergencyBudget;
-    saveSettings(settings);
-    setOnboarded();
+    if (!saveSettings(settings)) {
+      showToast("Could not save setup. Check available browser storage and try again.", "danger");
+      return;
+    }
+    if (!setOnboarded()) {
+      showToast("Settings were saved, but onboarding status could not be saved. Check browser storage.", "warning");
+      return;
+    }
     modal.classList.remove("show");
     if (allocated > settings.allowance && settings.allowance > 0) {
       showToast(`⚠️ Category budgets exceed allowance by ${formatCurrency(allocated - settings.allowance)}.`, "warning");
