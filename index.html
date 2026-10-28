@@ -48,27 +48,27 @@
     </div>
     <form id="onboardingForm" class="form-grid">
       <div class="input-group">
-        <label>Monthly Allowance (₹)</label>
+        <label for="setupAllowance">Monthly Allowance (₹)</label>
         <input type="number" id="setupAllowance" min="0" required />
       </div>
       <div class="input-group">
-        <label>Savings Goal (₹)</label>
+        <label for="setupSavings">Savings Goal (₹)</label>
         <input type="number" id="setupSavings" min="0" required />
       </div>
       <div class="input-group">
-        <label>College Budget (₹)</label>
+        <label for="setupCollege">College Budget (₹)</label>
         <input type="number" id="setupCollege" min="0" required />
       </div>
       <div class="input-group">
-        <label>Printout Budget (₹)</label>
+        <label for="setupPrintout">Printout Budget (₹)</label>
         <input type="number" id="setupPrintout" min="0" required />
       </div>
       <div class="input-group">
-        <label>Food & Snacks Budget (₹)</label>
+        <label for="setupFood">Food & Snacks Budget (₹)</label>
         <input type="number" id="setupFood" min="0" required />
       </div>
       <div class="input-group">
-        <label>Emergency Budget (Optional)</label>
+        <label for="setupEmergency">Emergency Budget (Optional)</label>
         <input type="number" id="setupEmergency" min="0" value="0" />
       </div>
       <button type="submit" class="btn-primary">Get Started 🚀</button>
@@ -202,15 +202,15 @@
     <form id="expenseForm" class="card form-card">
       <div class="form-grid">
         <div class="input-group full">
-          <label>Expense Name</label>
+          <label for="expName">Expense Name</label>
           <input type="text" id="expName" required placeholder="e.g. Lunch at canteen" />
         </div>
         <div class="input-group">
-          <label>Amount (₹)</label>
+          <label for="expAmount">Amount (₹)</label>
           <input type="number" id="expAmount" min="1" step="0.01" required placeholder="0.00" />
         </div>
         <div class="input-group">
-          <label>Category</label>
+          <label for="expCategory">Category</label>
           <select id="expCategory" required>
             <option value="Food">🍔 Food</option>
             <option value="College">🎓 College</option>
@@ -222,18 +222,18 @@
           </select>
         </div>
         <div class="input-group">
-          <label>Type</label>
+          <label for="expType">Type</label>
           <select id="expType" required>
             <option value="Need">✅ Need</option>
             <option value="Craving">💭 Craving</option>
           </select>
         </div>
         <div class="input-group">
-          <label>Date</label>
+          <label for="expDate">Date</label>
           <input type="date" id="expDate" required />
         </div>
         <div class="input-group full">
-          <label>Notes (Optional)</label>
+          <label for="expNotes">Notes (Optional)</label>
           <textarea id="expNotes" rows="2" placeholder="Any extra details..."></textarea>
         </div>
       </div>
@@ -307,11 +307,11 @@
     <form id="goalForm" class="card form-card">
       <div class="form-grid">
         <div class="input-group">
-          <label>Goal Name</label>
+          <label for="goalName">Goal Name</label>
           <input type="text" id="goalName" required placeholder="e.g. New Headphones" />
         </div>
         <div class="input-group">
-          <label>Target Amount (₹)</label>
+          <label for="goalTarget">Target Amount (₹)</label>
           <input type="number" id="goalTarget" min="1" required />
         </div>
       </div>
@@ -342,12 +342,12 @@
     <form id="settingsForm" class="card form-card">
       <h3>Edit Allowance & Budgets</h3>
       <div class="form-grid">
-        <div class="input-group"><label>Monthly Allowance (₹)</label><input type="number" id="setAllowance" required /></div>
-        <div class="input-group"><label>Savings Goal (₹)</label><input type="number" id="setSavings" required /></div>
-        <div class="input-group"><label>College Budget (₹)</label><input type="number" id="setCollege" required /></div>
-        <div class="input-group"><label>Printout Budget (₹)</label><input type="number" id="setPrintout" required /></div>
-        <div class="input-group"><label>Food & Snacks Budget (₹)</label><input type="number" id="setFood" required /></div>
-        <div class="input-group"><label>Emergency Budget (₹)</label><input type="number" id="setEmergency" required /></div>
+        <div class="input-group"><label for="setAllowance">Monthly Allowance (₹)</label><input type="number" id="setAllowance" required /></div>
+        <div class="input-group"><label for="setSavings">Savings Goal (₹)</label><input type="number" id="setSavings" required /></div>
+        <div class="input-group"><label for="setCollege">College Budget (₹)</label><input type="number" id="setCollege" required /></div>
+        <div class="input-group"><label for="setPrintout">Printout Budget (₹)</label><input type="number" id="setPrintout" required /></div>
+        <div class="input-group"><label for="setFood">Food & Snacks Budget (₹)</label><input type="number" id="setFood" required /></div>
+        <div class="input-group"><label for="setEmergency">Emergency Budget (₹)</label><input type="number" id="setEmergency" required /></div>
       </div>
       <button type="submit" class="btn-primary">💾 Save Settings</button>
     </form>
@@ -371,9 +371,9 @@
     <h2 id="editExpenseTitle">Edit Expense</h2>
     <form id="editForm" class="form-grid">
       <input type="hidden" id="editId" />
-      <div class="input-group full"><label>Name</label><input type="text" id="editName" required /></div>
-      <div class="input-group"><label>Amount (₹)</label><input type="number" id="editAmount" required min="0" step="0.01" /></div>
-      <div class="input-group"><label>Category</label>
+      <div class="input-group full"><label for="editName">Name</label><input type="text" id="editName" required /></div>
+      <div class="input-group"><label for="editAmount">Amount (₹)</label><input type="number" id="editAmount" required min="0" step="0.01" /></div>
+      <div class="input-group"><label for="editCategory">Category</label>
         <select id="editCategory">
           <option value="Food">🍔 Food</option>
           <option value="College">🎓 College</option>
@@ -384,14 +384,14 @@
           <option value="Other">📦 Other</option>
         </select>
       </div>
-      <div class="input-group"><label>Type</label>
+      <div class="input-group"><label for="editType">Type</label>
         <select id="editType">
           <option value="Need">✅ Need</option>
           <option value="Craving">💭 Craving</option>
         </select>
       </div>
-      <div class="input-group"><label>Date</label><input type="date" id="editDate" required /></div>
-      <div class="input-group full"><label>Notes</label><textarea id="editNotes" rows="2"></textarea></div>
+      <div class="input-group"><label for="editDate">Date</label><input type="date" id="editDate" required /></div>
+      <div class="input-group full"><label for="editNotes">Notes</label><textarea id="editNotes" rows="2"></textarea></div>
       <div class="form-actions">
         <button type="submit" class="btn-primary">Save Changes</button>
         <button type="button" id="cancelEdit" class="btn-ghost">Cancel</button>
