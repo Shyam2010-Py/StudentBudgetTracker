@@ -4,7 +4,7 @@
    ========================================================= */
 
 const CACHE_PREFIX = "pocketpilot-studentbudgettracker-";
-const CACHE_VERSION = CACHE_PREFIX + "v2.3.0";
+const CACHE_VERSION = CACHE_PREFIX + "v3.0.0";
 const STATIC_CACHE = CACHE_VERSION + "-static";
 const RUNTIME_CACHE = CACHE_VERSION + "-runtime";
 const OFFLINE_URL = "offline.html";
@@ -25,6 +25,8 @@ const APP_SHELL = [
   "./manifest.json",
   "./css/styles.css",
   "./js/storage.js",
+  "./js/supabase-config.js",
+  "./js/cloud-sync.js",
   "./js/app.js",
   "./js/dashboard.js",
   "./js/expenses.js",
@@ -43,6 +45,7 @@ const APP_SHELL = [
   "./icons/icon-384.svg",
   "./icons/icon-512.svg",
   "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js",
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
   "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
 ];
 
