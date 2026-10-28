@@ -148,7 +148,7 @@ begin
         or (item.value ->> 'amount')::numeric <= 0
         or coalesce(item.value ->> 'category', '') not in ('Food', 'College', 'Printouts', 'Transport', 'Shopping', 'Emergency', 'Other')
         or coalesce(item.value ->> 'type', '') not in ('Need', 'Craving')
-        or coalesce(item.value ->> 'date', '') !~ '^\d{4}-\d{2}-\d{2}
+        or coalesce(item.value ->> 'date', '') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}
 
   update public.user_state as s
      set settings = p_settings,
