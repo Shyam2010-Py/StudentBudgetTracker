@@ -175,11 +175,9 @@
     if (!validState(state)) throw new Error("The cloud account contains an invalid or unsupported backup.");
     applyingCloudState = true;
     try {
-      if (!saveSettings(state.settings) ||
-          !saveExpenses(state.expenses) ||
-          !saveGoals(state.goals)) {
-        throw new Error("Browser storage could not save the cloud data. Export a backup and free browser storage.");
-      }
+      // Reuse the backup import's snapshot/rollback logic so a quota error
+      // cannot leave settings updated while expenses or goals remain stale.
+      importAll({ settings: state.settings, expenses: state.expenses, goals: state.goals });
       if (Number(state.settings.allowance) > 0 || state.expenses.length || state.goals.length) {
         setOnboarded();
       }
@@ -319,6 +317,7 @@
     }
     if (syncInFlight) {
       setPending(true);
+      window.setTimeout(() => flushCloudSync(), SYNC_DEBOUNCE_MS);
       return;
     }
     const state = readLocalState();
