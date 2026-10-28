@@ -1,5 +1,6 @@
--- PocketPilot v3.0.0: authenticated cloud sync with per-user isolation.
--- Safe to apply to a dedicated Supabase project. This migration does not delete app data.
+-- PocketPilot v3.0.1: authenticated cloud sync with per-user isolation.
+-- Apply only to the dedicated PocketPilot Supabase project.
+-- This migration creates app tables and does not delete existing data.
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -22,7 +23,8 @@ create table if not exists public.user_state (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists user_state_updated_at_idx on public.user_state (updated_at);
+create index if not exists user_state_updated_at_idx
+  on public.user_state (updated_at);
 
 alter table public.profiles enable row level security;
 alter table public.user_state enable row level security;
@@ -40,22 +42,6 @@ create policy "Profiles are readable by their owner"
 drop policy if exists "Users can read their own state" on public.user_state;
 create policy "Users can read their own state"
   on public.user_state for select to authenticated
-  using ((select auth.uid()) = user_id);
-
-drop policy if exists "Users can insert their own state" on public.user_state;
-create policy "Users can insert their own state"
-  on public.user_state for insert to authenticated
-  with check ((select auth.uid()) = user_id);
-
-drop policy if exists "Users can update their own state" on public.user_state;
-create policy "Users can update their own state"
-  on public.user_state for update to authenticated
-  using ((select auth.uid()) = user_id)
-  with check ((select auth.uid()) = user_id);
-
-drop policy if exists "Users can delete their own state" on public.user_state;
-create policy "Users can delete their own state"
-  on public.user_state for delete to authenticated
   using ((select auth.uid()) = user_id);
 
 create or replace function public.handle_pocketpilot_user()
@@ -96,7 +82,7 @@ returns table (revision bigint, updated_at timestamptz)
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_user_id uuid := auth.uid();
   v_revision bigint;
@@ -120,36 +106,6 @@ begin
     raise exception 'PocketPilot state is too large' using errcode = '22023';
   end if;
 
-  if jsonb_typeof(p_settings -> 'allowance') is distinct from 'number'
-     or jsonb_typeof(p_settings -> 'savingsGoal') is distinct from 'number'
-     or jsonb_typeof(p_settings -> 'collegeBudget') is distinct from 'number'
-     or jsonb_typeof(p_settings -> 'printoutBudget') is distinct from 'number'
-     or jsonb_typeof(p_settings -> 'foodBudget') is distinct from 'number'
-     or jsonb_typeof(p_settings -> 'emergencyBudget') is distinct from 'number' then
-    raise exception 'Invalid settings values' using errcode = '22023';
-  end if;
-
-  if (p_settings ->> 'allowance')::numeric < 0
-     or (p_settings ->> 'savingsGoal')::numeric < 0
-     or (p_settings ->> 'collegeBudget')::numeric < 0
-     or (p_settings ->> 'printoutBudget')::numeric < 0
-     or (p_settings ->> 'foodBudget')::numeric < 0
-     or (p_settings ->> 'emergencyBudget')::numeric < 0 then
-    raise exception 'Negative settings values are not allowed' using errcode = '22023';
-  end if;
-
-  if exists (
-    select 1
-      from jsonb_array_elements(p_expenses) as item(value)
-     where jsonb_typeof(item.value) is distinct from 'object'
-        or jsonb_typeof(item.value -> 'name') is distinct from 'string'
-        or length(trim(item.value ->> 'name')) = 0
-        or jsonb_typeof(item.value -> 'amount') is distinct from 'number'
-        or (item.value ->> 'amount')::numeric <= 0
-        or coalesce(item.value ->> 'category', '') not in ('Food', 'College', 'Printouts', 'Transport', 'Shopping', 'Emergency', 'Other')
-        or coalesce(item.value ->> 'type', '') not in ('Need', 'Craving')
-        or coalesce(item.value ->> 'date', '') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}
-
   update public.user_state as s
      set settings = p_settings,
          expenses = p_expenses,
@@ -166,10 +122,13 @@ begin
   end if;
 
   if p_expected_revision = 0 then
-    insert into public.user_state (user_id, settings, expenses, goals, schema_version, revision, updated_at)
-    values (v_user_id, p_settings, p_expenses, p_goals, 1, 1, now())
+    insert into public.user_state
+      (user_id, settings, expenses, goals, schema_version, revision, updated_at)
+    values
+      (v_user_id, p_settings, p_expenses, p_goals, 1, 1, now())
     on conflict (user_id) do nothing
-    returning user_state.revision, user_state.updated_at into v_revision, v_updated_at;
+    returning user_state.revision, user_state.updated_at
+      into v_revision, v_updated_at;
 
     if found then
       return query select v_revision, v_updated_at;
@@ -182,126 +141,11 @@ begin
 end;
 $$;
 
-revoke all on function public.save_pocketpilot_state(jsonb, jsonb, jsonb, bigint) from public, anon;
-grant execute on function public.save_pocketpilot_state(jsonb, jsonb, jsonb, bigint) to authenticated;
+revoke all on function public.save_pocketpilot_state(jsonb, jsonb, jsonb, bigint)
+  from public, anon;
+grant execute on function public.save_pocketpilot_state(jsonb, jsonb, jsonb, bigint)
+  to authenticated;
 
--- Backfill profiles for existing Auth users without changing their credentials.
-insert into public.profiles (id, email, display_name)
-select id, email, coalesce(raw_user_meta_data ->> 'display_name', '')
-from auth.users
-on conflict (id) do nothing;
-
-  ) then
-    raise exception 'Invalid expense record' using errcode = '22023';
-  end if;
-
-  if exists (
-    select 1
-      from jsonb_array_elements(p_goals) as item(value)
-     where jsonb_typeof(item.value) is distinct from 'object'
-        or jsonb_typeof(item.value -> 'name') is distinct from 'string'
-        or length(trim(item.value ->> 'name')) = 0
-        or jsonb_typeof(item.value -> 'target') is distinct from 'number'
-        or (item.value ->> 'target')::numeric <= 0
-        or (item.value ? 'contributions' and jsonb_typeof(item.value -> 'contributions') is distinct from 'array')
-        or (jsonb_typeof(item.value -> 'contributions') = 'array' and jsonb_array_length(item.value -> 'contributions') > 5000)
-  ) then
-    raise exception 'Invalid goal record' using errcode = '22023';
-  end if;
-
-  if exists (
-    select 1
-      from jsonb_array_elements(p_goals) as goal(value)
-      cross join lateral jsonb_array_elements(
-        case when jsonb_typeof(goal.value -> 'contributions') = 'array'
-             then goal.value -> 'contributions' else '[]'::jsonb end
-      ) as contribution(value)
-     where jsonb_typeof(contribution.value) is distinct from 'object'
-        or jsonb_typeof(contribution.value -> 'amount') is distinct from 'number'
-        or (contribution.value ->> 'amount')::numeric <= 0
-        or coalesce(contribution.value ->> 'date', '') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}
-
-  update public.user_state as s
-     set settings = p_settings,
-         expenses = p_expenses,
-         goals = p_goals,
-         revision = s.revision + 1,
-         updated_at = now()
-   where s.user_id = v_user_id
-     and s.revision = p_expected_revision
-  returning s.revision, s.updated_at into v_revision, v_updated_at;
-
-  if found then
-    return query select v_revision, v_updated_at;
-    return;
-  end if;
-
-  if p_expected_revision = 0 then
-    insert into public.user_state (user_id, settings, expenses, goals, schema_version, revision, updated_at)
-    values (v_user_id, p_settings, p_expenses, p_goals, 1, 1, now())
-    on conflict (user_id) do nothing
-    returning user_state.revision, user_state.updated_at into v_revision, v_updated_at;
-
-    if found then
-      return query select v_revision, v_updated_at;
-      return;
-    end if;
-  end if;
-
-  raise exception 'PocketPilot cloud state changed elsewhere; reload and merge before saving'
-    using errcode = '40001';
-end;
-$$;
-
-revoke all on function public.save_pocketpilot_state(jsonb, jsonb, jsonb, bigint) from public, anon;
-grant execute on function public.save_pocketpilot_state(jsonb, jsonb, jsonb, bigint) to authenticated;
-
--- Backfill profiles for existing Auth users without changing their credentials.
-insert into public.profiles (id, email, display_name)
-select id, email, coalesce(raw_user_meta_data ->> 'display_name', '')
-from auth.users
-on conflict (id) do nothing;
-
-  ) then
-    raise exception 'Invalid goal contribution' using errcode = '22023';
-  end if;
-
-  update public.user_state as s
-     set settings = p_settings,
-         expenses = p_expenses,
-         goals = p_goals,
-         revision = s.revision + 1,
-         updated_at = now()
-   where s.user_id = v_user_id
-     and s.revision = p_expected_revision
-  returning s.revision, s.updated_at into v_revision, v_updated_at;
-
-  if found then
-    return query select v_revision, v_updated_at;
-    return;
-  end if;
-
-  if p_expected_revision = 0 then
-    insert into public.user_state (user_id, settings, expenses, goals, schema_version, revision, updated_at)
-    values (v_user_id, p_settings, p_expenses, p_goals, 1, 1, now())
-    on conflict (user_id) do nothing
-    returning user_state.revision, user_state.updated_at into v_revision, v_updated_at;
-
-    if found then
-      return query select v_revision, v_updated_at;
-      return;
-    end if;
-  end if;
-
-  raise exception 'PocketPilot cloud state changed elsewhere; reload and merge before saving'
-    using errcode = '40001';
-end;
-$$;
-
-revoke all on function public.save_pocketpilot_state(jsonb, jsonb, jsonb, bigint) from public, anon;
-grant execute on function public.save_pocketpilot_state(jsonb, jsonb, jsonb, bigint) to authenticated;
-
--- Backfill profiles for existing Auth users without changing their credentials.
 insert into public.profiles (id, email, display_name)
 select id, email, coalesce(raw_user_meta_data ->> 'display_name', '')
 from auth.users
