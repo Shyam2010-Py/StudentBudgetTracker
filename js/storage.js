@@ -3,7 +3,7 @@
    Centralized data access, validation and backup restoration.
    ========================================================= */
 
-const APP_VERSION = "2.3.0";
+const APP_VERSION = "3.0.0";
 
 const STORAGE_KEYS = {
   settings: "sbt_settings",
@@ -30,6 +30,10 @@ function read(key, fallback) {
 function write(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    if ([STORAGE_KEYS.settings, STORAGE_KEYS.expenses, STORAGE_KEYS.goals].includes(key) &&
+        typeof window !== "undefined" && typeof window.queueCloudSync === "function") {
+      window.queueCloudSync();
+    }
     return true;
   } catch (error) {
     console.error("Storage write error:", error);
