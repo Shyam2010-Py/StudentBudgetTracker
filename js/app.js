@@ -116,7 +116,7 @@ function updateGreeting() {
 
 function updateProductIdentity() {
   const brand = document.querySelector(".brand-name");
-  const footer = document.querySelector(".sidebar-footer p");
+  const footer = document.getElementById("appVersion");
   if (brand) brand.textContent = "PocketPilot";
   if (footer) footer.textContent = `v${APP_VERSION}`;
 }
@@ -132,6 +132,7 @@ function init() {
   setupGoalForm();
   setupSettings();
   setupReportExport();
+  if (typeof window.initializeCloudSync === "function") window.initializeCloudSync();
   if (isOnboarded()) renderDashboard();
 }
 

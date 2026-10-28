@@ -1,5 +1,15 @@
 # 📝 Changelog
 
+## [3.0.0] — 2026-10-28
+### ☁️ Supabase full-stack integration
+- Added email/password sign-up, sign-in, sign-out and password-reset flows using Supabase Auth.
+- Added per-user cloud state storage protected by PostgreSQL Row Level Security.
+- Added a revision-checked RPC to prevent silent overwrites across devices, with merge-on-conflict handling.
+- Kept LocalStorage as the offline-first local copy; changes queue while offline and sync when online.
+- Added explicit prompts before merging local records with cloud data or uploading local data to a new account.
+- Added SQL migration, safe public-key configuration placeholders, and cloud-sync regression tests.
+- Requires a Supabase project URL/publishable key, migration application, and Auth URL/email configuration before cloud sync is active.
+
 ## [2.3.0] — 2026-10-28
 ### 🔐 Production hardening
 - Isolated service-worker cache names to this PocketPilot app, preventing cache cleanup from deleting unrelated apps' caches on the shared GitHub Pages origin.

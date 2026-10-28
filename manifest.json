@@ -12,7 +12,7 @@
   "dir": "ltr",
   "categories": ["finance", "education", "productivity"],
   "prefer_related_applications": false,
-  "x-app-version": "2.3.0",
+  "x-app-version": "3.0.0",
   "icons": [
     { "src": "icons/icon-72.svg", "sizes": "72x72", "type": "image/svg+xml", "purpose": "any" },
     { "src": "icons/icon-96.svg", "sizes": "96x96", "type": "image/svg+xml", "purpose": "any" },

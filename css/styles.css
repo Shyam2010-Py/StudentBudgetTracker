@@ -488,3 +488,29 @@ input, select, textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* Cloud account and authentication */
+.cloud-account {
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.3));
+  border-radius: 0.75rem;
+  font-size: 0.82rem;
+}
+.cloud-account p { margin: 0 0 0.4rem; overflow-wrap: anywhere; }
+#cloudStatus[data-state="success"] { color: var(--success, #16a34a); }
+#cloudStatus[data-state="pending"] { color: var(--warning, #b45309); }
+#cloudStatus[data-state="error"] { color: var(--danger, #dc2626); }
+.cloud-email { opacity: 0.8; font-size: 0.76rem; }
+.cloud-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.cloud-actions button { font-size: 0.78rem; padding: 0.45rem 0.6rem; }
+.auth-card { max-width: 440px; }
+.auth-card h2 { margin-top: 0; }
+.auth-links { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+.auth-links button { font-size: 0.85rem; }
+.auth-message { margin: 0; min-height: 1.25rem; overflow-wrap: anywhere; }
+.auth-message[data-state="error"] { color: var(--danger, #dc2626); }
+.auth-message[data-state="success"] { color: var(--success, #16a34a); }
+#authPassword[hidden], #authRecovery[hidden], #authModeToggle[hidden], #cloudSyncBtn[hidden], #cloudEmail[hidden] { display: none !important; }
