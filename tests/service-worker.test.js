@@ -7,12 +7,14 @@ const vm = require("node:vm");
 function loadServiceWorker(cacheNames) {
   const handlers = {};
   const deleted = [];
+  const opened = [];
   const cacheStore = new Map();
   let skipWaitingCalls = 0;
   const caches = {
     async keys() { return [...cacheNames]; },
     async delete(name) { deleted.push(name); return true; },
     async open(name) {
+      opened.push(name);
       if (!cacheStore.has(name)) {
         cacheStore.set(name, {
           async add() {},
@@ -32,7 +34,7 @@ function loadServiceWorker(cacheNames) {
   };
   const source = fs.readFileSync(path.join(__dirname, "..", "service-worker.js"), "utf8");
   vm.runInNewContext(source, { self, caches, URL, fetch: async () => ({ ok: true, clone() { return this; } }), Promise, console });
-  return { handlers, deleted, getSkipWaitingCalls: () => skipWaitingCalls };
+  return { handlers, deleted, opened, getSkipWaitingCalls: () => skipWaitingCalls };
 }
 
 test("service worker activation deletes only this app's old caches", async () => {
@@ -65,4 +67,17 @@ test("service worker does not force-activate an update before user approval", as
   handlers.install({ waitUntil(promise) { installPromise = promise; } });
   await installPromise;
   assert.equal(getSkipWaitingCalls(), 0);
+});
+
+
+test("service worker does not intercept arbitrary third-party requests", () => {
+  const { handlers, opened } = loadServiceWorker([]);
+  let intercepted = false;
+  handlers.fetch({
+    request: { method: "GET", mode: "cors", url: "https://untrusted.example/script.js" },
+    respondWith() { intercepted = true; },
+    waitUntil() {},
+  });
+  assert.equal(intercepted, false);
+  assert.deepEqual(opened, []);
 });
