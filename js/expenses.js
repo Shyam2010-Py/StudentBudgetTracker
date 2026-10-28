@@ -16,17 +16,28 @@ function setupExpenseForm() {
       date: document.getElementById("expDate").value,
       notes: document.getElementById("expNotes").value.trim(),
     };
-    if (!expense.name || !Number.isFinite(expense.amount) || expense.amount <= 0 || !expense.date) return;
+    if (!expense.name || !Number.isFinite(expense.amount) || expense.amount <= 0 || !isValidLocalDate(expense.date)) {
+      showToast("Enter a name, a positive amount, and a valid date.", "warning");
+      return;
+    }
+    if (!VALID_CATEGORIES.includes(expense.category) || !VALID_EXPENSE_TYPES.includes(expense.type)) {
+      showToast("Choose a valid category and expense type.", "warning");
+      return;
+    }
 
     if (expense.type === "Craving") {
       const ok = confirm("💭 This expense is marked as a craving. Are you sure you want to continue?");
       if (!ok) return;
     }
 
-    addExpense(expense);
+    const savedExpense = addExpense(expense);
+    if (!savedExpense) {
+      showToast("Could not save this expense. Check available browser storage and export a backup.", "danger");
+      return;
+    }
     e.target.reset();
     dateInput.value = currentLocalDate();
-    showToast("✅ Expense added successfully!", "success");
+    showToast("Expense added successfully.", "success");
     renderDashboard();
   });
 }
@@ -35,6 +46,12 @@ function setupHistoryFilters() {
   document.getElementById("searchExp").addEventListener("input", renderExpenseList);
   document.getElementById("filterCategory").addEventListener("change", renderExpenseList);
   document.getElementById("filterMonth").addEventListener("change", renderExpenseList);
+  document.getElementById("expenseList").addEventListener("click", (event) => {
+    const editButton = event.target.closest("[data-expense-edit]");
+    const deleteButton = event.target.closest("[data-expense-delete]");
+    if (editButton) openEditModal(editButton.dataset.expenseEdit);
+    if (deleteButton) confirmDelete(deleteButton.dataset.expenseDelete);
+  });
   document.getElementById("clearFilters").addEventListener("click", () => {
     document.getElementById("searchExp").value = "";
     document.getElementById("filterCategory").value = "all";
@@ -69,7 +86,7 @@ function renderExpenseList() {
         <div class="expense-info">
           <div class="expense-name">${escapeHtml(e.name)}</div>
           <div class="expense-meta">
-            <span>${e.category}</span><span>•</span>
+            <span>${escapeHtml(e.category)}</span><span>•</span>
             <span>${e.type === "Craving" ? "💭 Craving" : "✅ Need"}</span><span>•</span>
             <span>${new Date(`${e.date}T12:00:00`).toLocaleDateString()}</span>
             ${e.notes ? `<span>• 📝 ${escapeHtml(e.notes)}</span>` : ""}
@@ -77,8 +94,8 @@ function renderExpenseList() {
         </div>
         <div class="expense-amount">${formatCurrency(e.amount)}</div>
         <div class="expense-actions">
-          <button class="action-btn" onclick="openEditModal('${e.id}')">✏️</button>
-          <button class="action-btn delete" onclick="confirmDelete('${e.id}')">🗑️</button>
+          <button class="action-btn" type="button" data-expense-edit="${escapeHtml(e.id)}" aria-label="Edit ${escapeHtml(e.name)}">✏️</button>
+          <button class="action-btn delete" type="button" data-expense-delete="${escapeHtml(e.id)}" aria-label="Delete ${escapeHtml(e.name)}">🗑️</button>
         </div>
       </div>`).join("");
 }
@@ -113,19 +130,29 @@ function setupEditForm() {
     e.preventDefault();
     const amount = Number(document.getElementById("editAmount").value);
     const name = document.getElementById("editName").value.trim();
-    if (!name || !Number.isFinite(amount) || amount <= 0) return;
+    const date = document.getElementById("editDate").value;
+    const category = document.getElementById("editCategory").value;
+    const type = document.getElementById("editType").value;
+    if (!name || !Number.isFinite(amount) || amount <= 0 || !isValidLocalDate(date)) {
+      showToast("Enter a name, a positive amount, and a valid date.", "warning");
+      return;
+    }
+    if (!VALID_CATEGORIES.includes(category) || !VALID_EXPENSE_TYPES.includes(type)) {
+      showToast("Choose a valid category and expense type.", "warning");
+      return;
+    }
 
     const id = document.getElementById("editId").value;
-    updateExpense(id, {
-      name,
-      amount,
-      category: document.getElementById("editCategory").value,
-      type: document.getElementById("editType").value,
-      date: document.getElementById("editDate").value,
+    const updated = updateExpense(id, {
+      name, amount, category, type, date,
       notes: document.getElementById("editNotes").value.trim(),
     });
+    if (!updated) {
+      showToast("Could not save the changes. Your previous record was kept.", "danger");
+      return;
+    }
     document.getElementById("editModal").classList.remove("show");
-    showToast("✅ Expense updated", "success");
+    showToast("Expense updated.", "success");
     renderExpenseList();
     renderDashboard();
   });
