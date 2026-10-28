@@ -41,6 +41,8 @@ test("service worker activation deletes only this app's old caches", async () =>
   const { handlers, deleted } = loadServiceWorker([
     "pocketpilot-studentbudgettracker-v2.2.0-static",
     "pocketpilot-studentbudgettracker-v2.2.0-runtime",
+    "pocketpilot-studentbudgettracker-v2.3.0-static",
+    "pocketpilot-studentbudgettracker-v2.3.0-runtime",
     "pocketpilot-v2.2.0-static",
     "pocketpilot-v2.2.0-runtime",
     "pocketpilot-studentbudgettracker-v3.0.0-static",
