@@ -32,6 +32,8 @@ function navigateTo(sectionId) {
 
   document.getElementById("sidebar").classList.remove("open");
   document.getElementById("sidebarOverlay").classList.remove("show");
+  const menuToggle = document.getElementById("menuToggle");
+  if (menuToggle) menuToggle.setAttribute("aria-expanded", "false");
 }
 
 function setupSidebar() {
@@ -39,12 +41,14 @@ function setupSidebar() {
   const sidebar = document.getElementById("sidebar");
   const overlay = document.getElementById("sidebarOverlay");
   toggle.addEventListener("click", () => {
-    sidebar.classList.toggle("open");
-    overlay.classList.toggle("show");
+    const isOpen = sidebar.classList.toggle("open");
+    overlay.classList.toggle("show", isOpen);
+    toggle.setAttribute("aria-expanded", String(isOpen));
   });
   overlay.addEventListener("click", () => {
     sidebar.classList.remove("open");
     overlay.classList.remove("show");
+    toggle.setAttribute("aria-expanded", "false");
   });
   document.querySelectorAll(".nav-item").forEach((item) => {
     item.addEventListener("click", (e) => {
