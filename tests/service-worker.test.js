@@ -54,7 +54,9 @@ test("service worker activation deletes only this app's old caches", async () =>
   assert.deepEqual(deleted.sort(), [
     "pocketpilot-studentbudgettracker-v2.2.0-runtime",
     "pocketpilot-studentbudgettracker-v2.2.0-static",
-  ]);
+    "pocketpilot-v2.2.0-runtime",
+    "pocketpilot-v2.2.0-static",
+  ].sort());
 });
 
 test("service worker does not force-activate an update before user approval", async () => {
