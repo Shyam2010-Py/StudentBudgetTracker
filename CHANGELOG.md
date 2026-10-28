@@ -1,5 +1,16 @@
 # 📝 Changelog
 
+## [2.3.0] — 2026-10-28
+### 🔐 Production hardening
+- Isolated service-worker cache names to this PocketPilot app, preventing cache cleanup from deleting unrelated apps' caches on the shared GitHub Pages origin.
+- Scoped all cache lookups to PocketPilot's static/runtime caches rather than searching the entire origin's Cache Storage.
+- Removed automatic update activation so users can choose when the app reloads to a new version.
+- Made monthly reset and full reset attempt rollback if a browser-storage operation fails.
+- Added a 5 MB backup-import size limit and a file-read error message.
+- Pinned GitHub Actions to immutable commit SHAs and enabled weekly Dependabot updates for workflow dependencies.
+- Added service-worker regression tests and expanded CI to run all test files.
+- Bumped app and cache version to 2.3.0.
+
 ## [2.2.0] — 2026-10-28
 ### 🛡️ Safety, reliability, and accessibility
 - Added validation and normalization for settings, expenses, savings goals, dates, and imported backup data.
