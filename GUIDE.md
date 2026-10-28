@@ -1,12 +1,12 @@
 # 📖 PocketPilot — Complete Guide
 
-User & developer documentation for **PocketPilot** Student Budget Tracker (PWA v2.3.0).
+User & developer documentation for **PocketPilot** Student Budget Tracker (PWA v3.0.0).
 
 ---
 
 ## 🏗️ Architecture Overview
 
-PocketPilot is currently a **client-side-only** Progressive Web App. It has **no backend or account system**; its data is stored only in the browser. This version hardens the existing deployment but does not yet provide cloud sync or server-side persistence.
+PocketPilot v3.0.0 is an offline-first PWA with Supabase Auth and a PostgreSQL-backed per-user cloud state API. LocalStorage remains available offline; authenticated cloud sync is optional and protected by Row Level Security.
 
 | API | Purpose |
 |-----|---------|
@@ -14,9 +14,9 @@ PocketPilot is currently a **client-side-only** Progressive Web App. It has **no
 | **Service Worker** | Offline capability + asset caching |
 | **Web App Manifest** | Installability + home screen integration |
 
-### Production boundary
+### Supabase production boundary
 
-The current GitHub Pages deployment is a static PWA, not a full-stack service. Clearing browser storage can remove local data, and data does not sync between devices. True full-stack operation requires a selected backend/database, authentication design, deployment configuration, and migration of local data.
+The frontend uses only a Supabase project URL and publishable key. Per-user access is enforced by RLS and `auth.uid()`. Apply the migration to the intended Supabase project and include the deployed app URL in Supabase Auth's Site URL and redirect allowlist. Until external setup is complete, the app continues in local/offline mode. Clearing browser storage can remove unsynced data; export backups regularly.
 
 ---
 
@@ -65,7 +65,7 @@ When you deploy a new version:
 2. The new SW installs in the background
 3. When activated, the **update toast** appears: *"A new version of PocketPilot is available. Refresh to update."*
 4. User clicks **Refresh** → the new version takes over
-5. Only older caches with PocketPilot's unique cache prefix are deleted on activation; caches belonging to other apps are left untouched
+5. Only older caches with PocketPilot's unique cache prefix are deleted on activation; caches belonging to other apps are left untouched. The Supabase client library is precached when online; authentication and syncing require network access.
 
 ---
 
