@@ -1,5 +1,16 @@
 # 📝 Changelog
 
+## [2.2.0] — 2026-10-28
+### 🛡️ Safety, reliability, and accessibility
+- Added validation and normalization for settings, expenses, savings goals, dates, and imported backup data.
+- Backup restoration now checks write results and attempts to restore previous values if a storage write fails.
+- Expense and goal actions now report failed saves instead of showing false success messages.
+- CSV exports quote cells consistently and neutralize spreadsheet formula prefixes.
+- Removed inline event handlers from expense and savings-goal actions in favor of delegated event listeners.
+- Coordinated PWA update refresh with the service worker's controller change.
+- Added accessible page landmarks, modal labels, live status announcements, keyboard focus indicators, and reduced-motion support.
+- Bumped the service-worker cache version to v2.2.0.
+
 ## [2.1.0] — 2026-08-20
 ### 🛠️ Correctness & Reliability Release
 
