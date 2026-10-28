@@ -81,7 +81,7 @@ function contributeToGoal(e, id) {
   }
 
   const contributions = Array.isArray(goal.contributions) ? [...goal.contributions] : [];
-  contributions.push({ amount, date: currentLocalDate() });
+  contributions.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 10), amount, date: currentLocalDate() });
   const updated = updateGoal(id, { contributions });
   if (!updated) {
     showToast("Could not save this contribution. Your previous savings were kept.", "danger");
