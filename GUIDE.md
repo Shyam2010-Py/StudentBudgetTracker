@@ -1,6 +1,6 @@
 # 📖 PocketPilot — Complete Guide
 
-User & developer documentation for **PocketPilot** Student Budget Tracker (PWA v2.0.0).
+User & developer documentation for **PocketPilot** Student Budget Tracker (PWA v2.2.0).
 
 ---
 
