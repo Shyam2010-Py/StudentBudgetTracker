@@ -6,7 +6,7 @@
    - Auto cleanup of old caches on activation
    ========================================================= */
 
-const CACHE_VERSION = "pocketpilot-v2.1.0";
+const CACHE_VERSION = "pocketpilot-v2.2.0";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const OFFLINE_URL = "offline.html";
