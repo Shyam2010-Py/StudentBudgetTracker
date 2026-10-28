@@ -1,15 +1,22 @@
 /* =========================================================
    PocketPilot — Service Worker
-   - Cache-first for app shell (HTML, CSS, JS, icons)
-   - Precache CDN dependencies for offline use after first install
-   - Offline fallback page
-   - Auto cleanup of old caches on activation
+   App-scoped caches, safe offline fallback, controlled updates.
    ========================================================= */
 
-const CACHE_VERSION = "pocketpilot-v2.2.0";
-const STATIC_CACHE = `${CACHE_VERSION}-static`;
-const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
+const CACHE_PREFIX = "pocketpilot-studentbudgettracker-";
+const CACHE_VERSION = CACHE_PREFIX + "v2.3.0";
+const STATIC_CACHE = CACHE_VERSION + "-static";
+const RUNTIME_CACHE = CACHE_VERSION + "-runtime";
 const OFFLINE_URL = "offline.html";
+const ALLOWED_CDN_ORIGINS = new Set([
+  "https://cdn.jsdelivr.net",
+  "https://cdnjs.cloudflare.com",
+]);
+const LEGACY_CACHE_NAMES = [
+  "pocketpilot-v2.0.0-static", "pocketpilot-v2.0.0-runtime",
+  "pocketpilot-v2.1.0-static", "pocketpilot-v2.1.0-runtime",
+  "pocketpilot-v2.2.0-static", "pocketpilot-v2.2.0-runtime",
+];
 
 const APP_SHELL = [
   "./",
@@ -42,9 +49,9 @@ const APP_SHELL = [
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then(async (cache) => {
-      // Best-effort precache. A CDN failure must not prevent the SW installing.
+      // A CDN or optional asset failure must not prevent installation.
       await Promise.allSettled(APP_SHELL.map((url) => cache.add(url)));
-      return self.skipWaiting();
+      // Do not skip waiting automatically: the page can offer a safe update prompt.
     })
   );
 });
@@ -52,50 +59,88 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter((k) => !k.startsWith(CACHE_VERSION)).map((k) => caches.delete(k)));
+    // Cache Storage is shared by every app on an origin (including GitHub Pages).
+    // Delete only older caches owned by this application.
+    await Promise.all(
+      keys
+        .filter((key) => (key.startsWith(CACHE_PREFIX) && !key.startsWith(CACHE_VERSION)) || LEGACY_CACHE_NAMES.includes(key))
+        .map((key) => caches.delete(key))
+    );
     await self.clients.claim();
   })());
 });
 
 self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  if (req.method !== "GET") return;
+  const request = event.request;
+  if (request.method !== "GET") return;
 
-  const url = new URL(req.url);
+  const url = new URL(request.url);
+  const offlineUrl = new URL(OFFLINE_URL, self.registration.scope).href;
 
-  if (req.mode === "navigate") {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy));
-          return res;
-        })
-        .catch(() => caches.match(req).then((cached) => cached || caches.match(OFFLINE_URL)))
-    );
+  if (request.mode === "navigate") {
+    event.respondWith((async () => {
+      const runtimeCache = await caches.open(RUNTIME_CACHE);
+      try {
+        const response = await fetch(request);
+        if (response && response.ok) {
+          try { await runtimeCache.put(request, response.clone()); } catch (error) {
+            console.warn("Navigation cache write failed:", error);
+          }
+        }
+        return response;
+      } catch (error) {
+        const cachedPage = await runtimeCache.match(request);
+        if (cachedPage) return cachedPage;
+        const staticCache = await caches.open(STATIC_CACHE);
+        const offlinePage = await staticCache.match(offlineUrl);
+        if (offlinePage) return offlinePage;
+        throw error;
+      }
+    })());
     return;
   }
 
   if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(req).then((cached) => cached || fetch(req).then((res) => {
-        if (res.ok) caches.open(STATIC_CACHE).then((c) => c.put(req, res.clone()));
-        return res;
-      }).catch(() => caches.match(OFFLINE_URL)))
-    );
+    event.respondWith((async () => {
+      const staticCache = await caches.open(STATIC_CACHE);
+      const runtimeCache = await caches.open(RUNTIME_CACHE);
+      const cached = await staticCache.match(request) || await runtimeCache.match(request);
+      if (cached) return cached;
+
+      const response = await fetch(request);
+      if (response && response.ok) {
+        try { await runtimeCache.put(request, response.clone()); } catch (error) {
+          console.warn("Asset cache write failed:", error);
+        }
+      }
+      return response;
+    })());
     return;
   }
 
-  // CDN assets: cache-first once installed, then refresh in the background.
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      const network = fetch(req).then((res) => {
-        if (res.ok) caches.open(RUNTIME_CACHE).then((c) => c.put(req, res.clone()));
-        return res;
-      }).catch(() => cached);
-      return cached || network;
-    })
-  );
+  // Do not cache arbitrary third-party traffic; only known script CDNs are allowed.
+  if (!ALLOWED_CDN_ORIGINS.has(url.origin)) return;
+
+  // CDN assets: return a scoped cached copy immediately, then refresh it in the background.
+  event.respondWith((async () => {
+    const staticCache = await caches.open(STATIC_CACHE);
+    const runtimeCache = await caches.open(RUNTIME_CACHE);
+    const cached = await staticCache.match(request) || await runtimeCache.match(request);
+    const refresh = fetch(request).then(async (response) => {
+      if (response && response.ok) {
+        try { await runtimeCache.put(request, response.clone()); } catch (error) {
+          console.warn("CDN cache write failed:", error);
+        }
+      }
+      return response;
+    });
+
+    if (cached) {
+      event.waitUntil(refresh.then(() => undefined).catch(() => undefined));
+      return cached;
+    }
+    return refresh;
+  })());
 });
 
 self.addEventListener("message", (event) => {

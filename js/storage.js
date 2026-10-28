@@ -3,7 +3,7 @@
    Centralized data access, validation and backup restoration.
    ========================================================= */
 
-const APP_VERSION = "2.2.0";
+const APP_VERSION = "2.3.0";
 
 const STORAGE_KEYS = {
   settings: "sbt_settings",
