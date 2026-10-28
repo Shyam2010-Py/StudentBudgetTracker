@@ -5,6 +5,7 @@
 
 let deferredInstallPrompt = null;
 let swRegistration = null;
+let reloadAfterControllerChange = false;
 
 /* ---------- Register Service Worker ---------- */
 function registerServiceWorker() {
@@ -43,14 +44,21 @@ function showUpdateToast() {
   // Use the existing toast element but with a "Refresh" action
   const toast = document.getElementById("toast");
   if (!toast) return;
-  toast.innerHTML = `🔄 A new version of PocketPilot is available.
-    <button id="refreshApp" style="margin-left:0.5rem;background:#fff;color:#6366f1;border:none;padding:0.3rem 0.7rem;border-radius:6px;font-weight:600;cursor:pointer;">Refresh</button>`;
+  toast.replaceChildren(document.createTextNode("A new version of PocketPilot is available. "));
+  const refreshButton = document.createElement("button");
+  refreshButton.id = "refreshApp";
+  refreshButton.type = "button";
+  refreshButton.textContent = "Refresh";
+  refreshButton.className = "update-refresh-btn";
+  toast.appendChild(refreshButton);
   toast.className = "toast show warning";
-  document.getElementById("refreshApp").addEventListener("click", () => {
-    if (swRegistration && swRegistration.waiting) {
-      swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
+  refreshButton.addEventListener("click", () => {
+    if (!swRegistration || !swRegistration.waiting) {
+      window.location.reload();
+      return;
     }
-    window.location.reload();
+    reloadAfterControllerChange = true;
+    swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
   });
 }
 
@@ -105,6 +113,15 @@ function showManualInstallHelp() {
     ? "To install: tap the Share button, then 'Add to Home Screen'."
     : "To install: click the browser menu (⋮) → 'Install PocketPilot'.";
   showToast(msg, "warning");
+}
+
+/* Reload only after the new worker controls the page. */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!reloadAfterControllerChange) return;
+    reloadAfterControllerChange = false;
+    window.location.reload();
+  });
 }
 
 /* ---------- Init ---------- */
