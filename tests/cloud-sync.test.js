@@ -39,8 +39,8 @@ test("merges expenses by stable ID with local records taking priority", () => {
 test("merges goal contributions without duplicating identical dated entries", () => {
   const api = loadCloudHelpers();
   const result = api.mergeGoals(
-    [{ id: "goal-1", name: "Cloud", target: 100, contributions: [{ amount: 10, date: "2026-10-01" }] }],
-    [{ id: "goal-1", name: "Local", target: 120, contributions: [{ amount: 10, date: "2026-10-01" }, { amount: 5, date: "2026-10-02" }] }]
+    [{ id: "goal-1", name: "Cloud", target: 100, contributions: [{ id: "c1", amount: 10, date: "2026-10-01" }] }],
+    [{ id: "goal-1", name: "Local", target: 120, contributions: [{ id: "c1", amount: 10, date: "2026-10-01" }, { id: "c2", amount: 5, date: "2026-10-02" }] }]
   );
   assert.equal(result.length, 1);
   assert.equal(result[0].name, "Local");
