@@ -8,6 +8,7 @@ function loadServiceWorker(cacheNames) {
   const handlers = {};
   const deleted = [];
   const cacheStore = new Map();
+  let skipWaitingCalls = 0;
   const caches = {
     async keys() { return [...cacheNames]; },
     async delete(name) { deleted.push(name); return true; },
@@ -24,14 +25,14 @@ function loadServiceWorker(cacheNames) {
   };
   const self = {
     addEventListener(type, callback) { handlers[type] = callback; },
-    skipWaiting() { return Promise.resolve(); },
+    skipWaiting() { skipWaitingCalls += 1; return Promise.resolve(); },
     clients: { claim: () => Promise.resolve() },
     location: { origin: "https://example.github.io" },
     registration: { scope: "https://example.github.io/StudentBudgetTracker/" },
   };
   const source = fs.readFileSync(path.join(__dirname, "..", "service-worker.js"), "utf8");
   vm.runInNewContext(source, { self, caches, URL, fetch: async () => ({ ok: true, clone() { return this; } }), Promise, console });
-  return { handlers, deleted };
+  return { handlers, deleted, getSkipWaitingCalls: () => skipWaitingCalls };
 }
 
 test("service worker activation deletes only this app's old caches", async () => {
@@ -54,11 +55,10 @@ test("service worker activation deletes only this app's old caches", async () =>
   ]);
 });
 
-test("service worker waits for the user to accept an update", async () => {
-  const { handlers } = loadServiceWorker([]);
+test("service worker does not force-activate an update before user approval", async () => {
+  const { handlers, getSkipWaitingCalls } = loadServiceWorker([]);
   let installPromise;
   handlers.install({ waitUntil(promise) { installPromise = promise; } });
   await installPromise;
-  // A fresh installation should not force-skip a waiting update.
-  assert.equal(handlers.install !== undefined, true);
+  assert.equal(getSkipWaitingCalls(), 0);
 });
