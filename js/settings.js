@@ -29,8 +29,11 @@ function setupSettings() {
       showToast(`⚠️ Category budgets total ${formatCurrency(allocated)}, above the allowance of ${formatCurrency(settings.allowance)}.`, "warning");
     }
 
-    saveSettings(settings);
-    showToast("⚙️ Settings saved!", "success");
+    if (!saveSettings(settings)) {
+      showToast("Could not save settings. Check available browser storage.", "danger");
+      return;
+    }
+    showToast("Settings saved.", "success");
     renderDashboard();
   });
 
@@ -49,15 +52,16 @@ function exportCSV() {
     return;
   }
   const header = ["Date", "Name", "Category", "Type", "Amount", "Notes"];
+  const csvCell = (value) => {
+    let text = String(value ?? "");
+    // Neutralize spreadsheet formulas before quoting the CSV cell.
+    if (/^[\\s\\u0000-\\u001f]*[=+@-]/.test(text)) text = "'" + text;
+    return '"' + text.replace(/"/g, '""') + '"';
+  };
   const rows = expenses.map((e) => [
-    e.date,
-    `"${(e.name || "").replace(/"/g, '""')}"`,
-    e.category,
-    e.type,
-    e.amount,
-    `"${(e.notes || "").replace(/"/g, '""')}"`,
-  ]);
-  const csv = [header.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    e.date, e.name, e.category, e.type, e.amount, e.notes || "",
+  ].map(csvCell));
+  const csv = [header.map(csvCell).join(","), ...rows.map((row) => row.join(","))].join("\r\n");
   downloadFile(csv, "expenses.csv", "text/csv");
   showToast("📊 CSV exported!", "success");
 }
@@ -80,12 +84,15 @@ function importJSON(e) {
       if (!validateBackup(data)) throw new Error("Invalid backup structure");
       if (!confirm("This will replace all current data. Continue?")) return;
       importAll(data);
-      showToast("📥 Backup imported successfully!", "success");
+      showToast("Backup imported successfully.", "success");
       renderDashboard();
+      renderExpenseList();
+      renderGoals();
+      renderAnalytics();
       loadSettingsForm();
     } catch (err) {
       console.error("Backup import error:", err);
-      showToast("❌ Invalid or incompatible backup file", "danger");
+      showToast(err.message && err.message.includes("storage") ? "Browser storage is full or unavailable; existing data was preserved where possible." : "Invalid or incompatible backup file.", "danger");
     }
   };
   reader.readAsText(file);
@@ -115,12 +122,17 @@ function resetMonth() {
 function resetAll() {
   if (!confirm("⚠️ This will delete ALL data including settings, expenses, and goals. Continue?")) return;
   if (!confirm("Are you absolutely sure? This action cannot be undone.")) return;
-  localStorage.removeItem(STORAGE_KEYS.settings);
-  localStorage.removeItem(STORAGE_KEYS.expenses);
-  localStorage.removeItem(STORAGE_KEYS.goals);
-  localStorage.removeItem(STORAGE_KEYS.onboarding);
-  showToast("⚠️ All data cleared. Reloading...", "warning");
-  setTimeout(() => location.reload(), 1200);
+  try {
+    localStorage.removeItem(STORAGE_KEYS.settings);
+    localStorage.removeItem(STORAGE_KEYS.expenses);
+    localStorage.removeItem(STORAGE_KEYS.goals);
+    localStorage.removeItem(STORAGE_KEYS.onboarding);
+    showToast("All data cleared. Reloading...", "warning");
+    window.setTimeout(() => location.reload(), 1200);
+  } catch (error) {
+    console.error("Reset failed:", error);
+    showToast("Could not clear browser storage. Check browser storage permissions.", "danger");
+  }
 }
 
 /* ---------- File Download Helper ---------- */
@@ -133,5 +145,6 @@ function downloadFile(content, filename, mime) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // Keep the object URL alive until the browser has started the download.
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
