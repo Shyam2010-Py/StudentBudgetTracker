@@ -73,9 +73,10 @@
     const submit = document.getElementById("authSubmit");
     const toggle = document.getElementById("authModeToggle");
     const recovery = document.getElementById("authRecovery");
-    const password = document.getElementById("authPassword");
+    const passwordGroup = document.getElementById("authPassword");
+    const passwordInput = document.getElementById("authPasswordInput");
     const note = document.getElementById("authNote");
-    if (!title || !submit || !toggle || !recovery || !password || !note) return;
+    if (!title || !submit || !toggle || !recovery || !passwordGroup || !passwordInput || !note) return;
 
     const modes = {
       "sign-in": ["Sign in to PocketPilot", "Sign in", "New here? Create an account", "Sign in to sync your budget securely across devices."],
@@ -88,8 +89,9 @@
     submit.textContent = selected[1];
     toggle.textContent = selected[2];
     note.textContent = selected[3];
-    password.hidden = authMode === "recover";
-    password.required = authMode !== "recover";
+    passwordGroup.hidden = authMode === "recover";
+    passwordInput.required = authMode !== "recover";
+    passwordInput.autocomplete = authMode === "update-password" ? "new-password" : "current-password";
     recovery.hidden = authMode !== "sign-in";
     toggle.hidden = authMode === "recover" || authMode === "update-password";
   }
@@ -387,7 +389,7 @@
       return;
     }
     const email = document.getElementById("authEmail").value.trim();
-    const password = document.getElementById("authPassword").value;
+    const password = document.getElementById("authPasswordInput").value;
     const submit = document.getElementById("authSubmit");
     submit.disabled = true;
     setAuthMessage("Working…", false);
