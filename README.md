@@ -2,7 +2,7 @@
 
 A modern, responsive Progressive Web App designed for students to track monthly allowance, expenses, savings, and financial goals.
 
-![Version](https://img.shields.io/badge/version-2.1.0-blueviolet)
+![Version](https://img.shields.io/badge/version-2.2.0-blueviolet)
 ![PWA](https://img.shields.io/badge/PWA-Ready-success)
 ![Offline](https://img.shields.io/badge/Works-Offline-success)
 ![HTML5](https://img.shields.io/badge/HTML5-orange)
@@ -10,6 +10,8 @@ A modern, responsive Progressive Web App designed for students to track monthly 
 ![JavaScript](https://img.shields.io/badge/JavaScript-yellow)
 
 ## ✨ Features
+
+**Current release: 2.2.0** — safer local-storage writes and backup restoration, stricter record validation, spreadsheet-safe CSV exports, accessible action controls, and coordinated PWA updates.
 
 ### Core
 - 📊 **Dashboard** — Allowance, remaining balance, actual goal savings, today's spending, days remaining, and financial health score
