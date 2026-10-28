@@ -2,7 +2,7 @@
 
 A modern, responsive Progressive Web App designed for students to track monthly allowance, expenses, savings, and financial goals.
 
-![Version](https://img.shields.io/badge/version-2.3.0-blueviolet)
+![Version](https://img.shields.io/badge/version-3.0.0-blueviolet)
 ![PWA](https://img.shields.io/badge/PWA-Ready-success)
 ![Offline](https://img.shields.io/badge/Works-Offline-success)
 ![HTML5](https://img.shields.io/badge/HTML5-orange)
@@ -11,7 +11,7 @@ A modern, responsive Progressive Web App designed for students to track monthly 
 
 ## ✨ Features
 
-**Current release: 2.3.0** — app-scoped service-worker caches, safer update activation, rollback-aware resets, bounded backup imports, and hardened CI regression tests.
+**Current release: 3.0.0** — Supabase email/password authentication, per-user cloud state with RLS, revision-checked sync, offline-first local storage, and cloud-sync regression tests.
 
 ### Core
 - 📊 **Dashboard** — Allowance, remaining balance, actual goal savings, today's spending, days remaining, suggested daily budget, and financial health score
@@ -42,7 +42,9 @@ Savings-goal contributions are stored with dates, so historical savings remain s
 ## 🛠️ Tech Stack
 
 - HTML5 / CSS3 / Vanilla JavaScript
-- LocalStorage API
+- LocalStorage API (offline-first local copy)
+- Supabase Auth + PostgreSQL cloud state API protected by Row Level Security
+- Revision-checked sync with local/cloud merge on reconnect
 - Service Worker API
 - Web App Manifest
 - Chart.js (CDN, precached by the service worker after first online installation)
@@ -55,10 +57,15 @@ StudentBudgetTracker/
 ├── index.html
 ├── manifest.json
 ├── service-worker.js
+├── supabase/migrations/20261028000100_pocketpilot_cloud_sync.sql
+├── js/supabase-config.js
+├── js/cloud-sync.js
 ├── offline.html
 ├── css/
 │   └── styles.css
 ├── js/
+│   ├── supabase-config.js
+│   ├── cloud-sync.js
 │   ├── storage.js
 │   ├── pwa.js
 │   ├── app.js
@@ -76,6 +83,19 @@ StudentBudgetTracker/
 ├── CHANGELOG.md
 └── GUIDE.md
 ```
+
+## ☁️ Supabase full-stack setup
+
+PocketPilot keeps LocalStorage as its offline-first local copy and syncs a validated snapshot to Supabase after sign-in. The `user_state` row is protected by Row Level Security and keyed to `auth.uid()`. A revision-checked RPC prevents silent overwrites; conflicting device changes are merged by stable record ID. Password reset and email confirmation use Supabase Auth.
+
+1. Create or select a **dedicated Supabase project** for PocketPilot.
+2. Apply `supabase/migrations/20261028000100_pocketpilot_cloud_sync.sql` using the Supabase SQL Editor or Supabase CLI.
+3. Copy the Project URL and **publishable key** from Project Settings → API Keys into `js/supabase-config.js`.
+4. In Authentication → URL Configuration, set the deployed GitHub Pages URL as Site URL and add it to allowed redirect URLs. Enable email/password sign-in and configure email confirmation/reset templates.
+5. Commit the public project URL and publishable key in the frontend config. These are intended for browser use; **never put a service-role/secret key in the frontend or GitHub Pages**.
+6. Deploy the static app. Sign in and choose whether to upload/merge existing local data or download cloud data.
+
+The migration is committed but has **not** been applied to any Supabase project from this branch. Do not run it against a project containing unrelated application data without reviewing it first.
 
 ## 🚀 Getting Started
 
