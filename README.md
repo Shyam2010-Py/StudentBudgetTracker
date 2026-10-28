@@ -11,7 +11,7 @@ A modern, responsive Progressive Web App designed for students to track monthly 
 
 ## ✨ Features
 
-**Current release: 2.2.0** — safer local-storage writes and backup restoration, stricter record validation, spreadsheet-safe CSV exports, accessible action controls, and coordinated PWA updates.
+**Current release: 2.3.0** — app-scoped service-worker caches, safer update activation, rollback-aware resets, bounded backup imports, and hardened CI regression tests.
 
 ### Core
 - 📊 **Dashboard** — Allowance, remaining balance, actual goal savings, today's spending, days remaining, suggested daily budget, and financial health score
