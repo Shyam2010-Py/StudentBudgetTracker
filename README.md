@@ -2,7 +2,7 @@
 
 A modern, responsive Progressive Web App designed for students to track monthly allowance, expenses, savings, and financial goals.
 
-![Version](https://img.shields.io/badge/version-2.2.0-blueviolet)
+![Version](https://img.shields.io/badge/version-2.3.0-blueviolet)
 ![PWA](https://img.shields.io/badge/PWA-Ready-success)
 ![Offline](https://img.shields.io/badge/Works-Offline-success)
 ![HTML5](https://img.shields.io/badge/HTML5-orange)
@@ -88,6 +88,12 @@ StudentBudgetTracker/
 > 💡 Service Workers require **HTTPS** or `localhost`.
 
 > ℹ️ The first online visit is required before offline operation can work. After the service worker has cached the application shell and CDN dependencies, the main app remains usable offline.
+
+## 🛡️ Production-readiness notes
+
+- Service-worker cache cleanup is isolated to PocketPilot's own cache namespace, so it does not delete other apps' caches on a shared origin.
+- The app remains a **client-side-only PWA**: data lives in this browser's LocalStorage and does not sync across devices. Export backups before clearing browser data.
+- True full-stack features such as accounts, server-side storage, and multi-device sync require a separately configured backend and database; they are not claimed by this release.
 
 ## 🧪 Quality checks
 
