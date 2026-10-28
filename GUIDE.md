@@ -1,18 +1,22 @@
 # 📖 PocketPilot — Complete Guide
 
-User & developer documentation for **PocketPilot** Student Budget Tracker (PWA v2.2.0).
+User & developer documentation for **PocketPilot** Student Budget Tracker (PWA v2.3.0).
 
 ---
 
 ## 🏗️ Architecture Overview
 
-PocketPilot is a **client-side-only** Progressive Web App. It has **no backend** and uses **three browser APIs** to deliver a native-like experience:
+PocketPilot is currently a **client-side-only** Progressive Web App. It has **no backend or account system**; its data is stored only in the browser. This version hardens the existing deployment but does not yet provide cloud sync or server-side persistence.
 
 | API | Purpose |
 |-----|---------|
 | **LocalStorage** | Persistent app data (settings, expenses, goals) |
 | **Service Worker** | Offline capability + asset caching |
 | **Web App Manifest** | Installability + home screen integration |
+
+### Production boundary
+
+The current GitHub Pages deployment is a static PWA, not a full-stack service. Clearing browser storage can remove local data, and data does not sync between devices. True full-stack operation requires a selected backend/database, authentication design, deployment configuration, and migration of local data.
 
 ---
 
@@ -61,7 +65,7 @@ When you deploy a new version:
 2. The new SW installs in the background
 3. When activated, the **update toast** appears: *"A new version of PocketPilot is available. Refresh to update."*
 4. User clicks **Refresh** → the new version takes over
-5. Old caches are deleted automatically on activation
+5. Only older caches with PocketPilot's unique cache prefix are deleted on activation; caches belonging to other apps are left untouched
 
 ---
 
@@ -111,9 +115,9 @@ When you deploy a new version:
 ## 🔐 Privacy & Security
 
 - ✅ All data stays in **your browser** (LocalStorage)
-- ✅ No analytics, no tracking, no external requests (except CDN scripts on first load)
+- ✅ No analytics or tracking; external requests are limited to the Chart.js and jsPDF CDN assets
 - ✅ Manifest is HTTPS-compatible
-- ✅ Service worker uses **safe** cache strategies (no caching of cross-origin responses unless explicitly allowed)
+- ✅ Service worker uses app-scoped cache names and scoped lookups, including for the required CDN assets
 - ✅ No login, no accounts, no personal data shared
 
 ---
