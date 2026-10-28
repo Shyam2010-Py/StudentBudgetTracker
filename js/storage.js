@@ -144,21 +144,30 @@ function normalizeGoal(goal) {
   const contributions = Array.isArray(goal.contributions)
     ? goal.contributions
         .filter((contribution) => isPlainObject(contribution))
-        .map((contribution) => ({
-          amount: Number(contribution.amount) || 0,
-          date: isValidLocalDate(contribution.date) ? contribution.date : currentLocalDate(),
-          ...(contribution.legacy ? { legacy: true } : {}),
-        }))
+        .map((contribution, index) => {
+          const amount = Number(contribution.amount) || 0;
+          const date = isValidLocalDate(contribution.date) ? contribution.date : currentLocalDate();
+          return {
+            id: typeof contribution.id === "string" && contribution.id
+              ? contribution.id
+              : "legacy-" + String(goal.id || "goal") + "-" + index + "-" + date + "-" + amount,
+            amount,
+            date,
+            ...(contribution.legacy ? { legacy: true } : {}),
+          };
+        })
         .filter((contribution) => Number.isFinite(contribution.amount) && contribution.amount > 0)
     : [];
 
   // Backward compatibility for goals created before contribution history existed.
   if (!contributions.length && Number(goal.saved) > 0) {
+    const date = goal.createdAt && isValidLocalDate(String(goal.createdAt).slice(0, 10))
+      ? String(goal.createdAt).slice(0, 10)
+      : currentLocalDate();
     contributions.push({
+      id: "legacy-" + String(goal.id || "goal") + "-0-" + date + "-" + Number(goal.saved),
       amount: Number(goal.saved),
-      date: goal.createdAt && isValidLocalDate(String(goal.createdAt).slice(0, 10))
-        ? String(goal.createdAt).slice(0, 10)
-        : currentLocalDate(),
+      date,
       legacy: true,
     });
   }
