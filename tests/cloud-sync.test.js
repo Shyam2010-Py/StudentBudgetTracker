@@ -59,9 +59,9 @@ test("migration enforces per-user RLS and optimistic revision checks", () => {
   assert.doesNotMatch(sql, /service_role|supabase_secret_[a-z0-9]+/i);
 });
 
-test("browser configuration contains placeholders, never a server secret", () => {
+test("browser configuration accepts real public project values but never a server secret", () => {
   const config = fs.readFileSync(path.join(__dirname, "..", "js", "supabase-config.js"), "utf8");
-  assert.match(config, /url: ""/);
-  assert.match(config, /publishableKey: ""/);
+  assert.match(config, /url:\s*"https:\/\/[a-z0-9-]+\.supabase\.co"/i);
+  assert.match(config, /publishableKey:\s*"(?:sb_publishable_[A-Za-z0-9_-]+|)"/);
   assert.doesNotMatch(config, /service_role\s*[:=]|sb_secret_[A-Za-z0-9]/i);
 });
