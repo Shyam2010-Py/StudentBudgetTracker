@@ -9,6 +9,7 @@
 - Removed inline event handlers from expense and savings-goal actions in favor of delegated event listeners.
 - Coordinated PWA update refresh with the service worker's controller change.
 - Added accessible page landmarks, modal labels, live status announcements, keyboard focus indicators, and reduced-motion support.
+- Added a suggested daily budget card that divides remaining spendable funds across today and the rest of the month.
 - Bumped the service-worker cache version to v2.2.0.
 
 ## [2.1.0] — 2026-08-20
