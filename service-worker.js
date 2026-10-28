@@ -8,6 +8,10 @@ const CACHE_VERSION = CACHE_PREFIX + "v2.3.0";
 const STATIC_CACHE = CACHE_VERSION + "-static";
 const RUNTIME_CACHE = CACHE_VERSION + "-runtime";
 const OFFLINE_URL = "offline.html";
+const ALLOWED_CDN_ORIGINS = new Set([
+  "https://cdn.jsdelivr.net",
+  "https://cdnjs.cloudflare.com",
+]);
 const LEGACY_CACHE_NAMES = [
   "pocketpilot-v2.0.0-static", "pocketpilot-v2.0.0-runtime",
   "pocketpilot-v2.1.0-static", "pocketpilot-v2.1.0-runtime",
@@ -113,6 +117,9 @@ self.addEventListener("fetch", (event) => {
     })());
     return;
   }
+
+  // Do not cache arbitrary third-party traffic; only known script CDNs are allowed.
+  if (!ALLOWED_CDN_ORIGINS.has(url.origin)) return;
 
   // CDN assets: return a scoped cached copy immediately, then refresh it in the background.
   event.respondWith((async () => {
