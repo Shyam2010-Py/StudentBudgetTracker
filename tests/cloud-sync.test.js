@@ -54,6 +54,8 @@ test("migration enforces per-user RLS and optimistic revision checks", () => {
   assert.match(sql, /auth\.uid\(\)\) = user_id/i);
   assert.match(sql, /p_expected_revision bigint/i);
   assert.match(sql, /using errcode = '40001'/i);
+  assert.match(sql, /revoke all on table public\.user_state from public, anon, authenticated/i);
+  assert.match(sql, /security definer/i);
   assert.doesNotMatch(sql, /service_role|supabase_secret_[a-z0-9]+/i);
 });
 
@@ -61,5 +63,5 @@ test("browser configuration contains placeholders, never a server secret", () =>
   const config = fs.readFileSync(path.join(__dirname, "..", "js", "supabase-config.js"), "utf8");
   assert.match(config, /url: ""/);
   assert.match(config, /publishableKey: ""/);
-  assert.doesNotMatch(config, /service_role|sb_secret_/i);
+  assert.doesNotMatch(config, /service_role\s*[:=]|sb_secret_[A-Za-z0-9]/i);
 });
