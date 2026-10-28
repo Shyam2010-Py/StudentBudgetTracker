@@ -14,7 +14,9 @@
 <meta name="apple-mobile-web-app-title" content="PocketPilot" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="format-detection" content="telephone=no" />
-<meta name="description" content="PocketPilot — Smart Budgeting for Students. Track your allowance, expenses, savings, and goals — fully offline." />
+<meta name="description" content="PocketPilot helps students track allowance, expenses, savings goals, and budgets with offline support." />
+<meta name="color-scheme" content="light dark" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
 
 <!-- Icons -->
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
@@ -38,10 +40,10 @@
 <body>
 <!-- ================== ONBOARDING MODAL ================== -->
 <div id="onboardingModal" class="modal">
-  <div class="modal-content onboarding">
+  <div class="modal-content onboarding" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
     <div class="onboarding-header">
       <div class="logo-circle">💰</div>
-      <h1>Welcome!</h1>
+      <h1 id="onboardingTitle">Welcome!</h1>
       <p>Let's set up your Student Budget Tracker</p>
     </div>
     <form id="onboardingForm" class="form-grid">
@@ -77,7 +79,7 @@
 <!-- ================== HEADER ================== -->
 <header class="app-header">
   <div class="header-left">
-    <button id="menuToggle" class="icon-btn" aria-label="Menu">☰</button>
+    <button id="menuToggle" class="icon-btn" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">☰</button>
     <div class="brand">
       <span class="brand-icon">💰</span>
       <span class="brand-name">Budget Tracker</span>
@@ -85,13 +87,13 @@
   </div>
   <div class="header-right">
     <button id="installBtn" class="install-btn" style="display:none;" aria-label="Install PocketPilot">⬇️ Install</button>
-    <button id="themeToggle" class="icon-btn" aria-label="Toggle theme">🌙</button>
+    <button id="themeToggle" class="icon-btn" aria-label="Toggle color theme">🌙</button>
   </div>
 </header>
 
 <!-- ================== SIDEBAR ================== -->
-<aside id="sidebar" class="sidebar">
-  <nav class="nav-list">
+<aside id="sidebar" class="sidebar" aria-label="Application sidebar">
+  <nav class="nav-list" aria-label="Main navigation">
     <a href="#" class="nav-item active" data-section="dashboard"><span>📊</span> Dashboard</a>
     <a href="#" class="nav-item" data-section="addExpense"><span>➕</span> Add Expense</a>
     <a href="#" class="nav-item" data-section="history"><span>📜</span> History</a>
@@ -107,7 +109,7 @@
 <div id="sidebarOverlay" class="sidebar-overlay"></div>
 
 <!-- ================== MAIN ================== -->
-<main class="main-content">
+<main id="mainContent" class="main-content" tabindex="-1">
   <!-- DASHBOARD -->
   <section id="dashboard" class="section active">
     <div class="section-title">
@@ -365,8 +367,8 @@
 
 <!-- EDIT MODAL -->
 <div id="editModal" class="modal">
-  <div class="modal-content">
-    <h2>Edit Expense</h2>
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="editExpenseTitle">
+    <h2 id="editExpenseTitle">Edit Expense</h2>
     <form id="editForm" class="form-grid">
       <input type="hidden" id="editId" />
       <div class="input-group full"><label>Name</label><input type="text" id="editName" required /></div>
@@ -399,7 +401,7 @@
 </div>
 
 <!-- TOAST -->
-<div id="toast" class="toast"></div>
+<div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="js/storage.js"></script>
 <script src="js/pwa.js"></script>
