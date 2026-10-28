@@ -26,7 +26,7 @@ function setupSettings() {
 
     const allocated = settings.collegeBudget + settings.printoutBudget + settings.foodBudget + settings.emergencyBudget;
     if (settings.allowance > 0 && allocated > settings.allowance) {
-      showToast(`⚠️ Category budgets total ${formatCurrency(allocated)}, above the allowance of ${formatCurrency(settings.allowance)}.`, "warning");
+      showToast("⚠️ Category budgets total " + formatCurrency(allocated) + ", above the allowance of " + formatCurrency(settings.allowance) + ".", "warning");
     }
 
     if (!saveSettings(settings)) {
@@ -70,13 +70,19 @@ function exportCSV() {
 function exportJSON() {
   const data = exportAll();
   const json = JSON.stringify(data, null, 2);
-  downloadFile(json, `budget-backup-${currentMonthKey()}.json`, "application/json");
+  downloadFile(json, "budget-backup-" + currentMonthKey() + ".json", "application/json");
   showToast("💾 Backup downloaded!", "success");
 }
 
 function importJSON(e) {
-  const file = e.target.files[0];
+  const file = e.target.files && e.target.files[0];
   if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    showToast("Backup file is too large. Choose a file smaller than 5 MB.", "warning");
+    e.target.value = "";
+    return;
+  }
+
   const reader = new FileReader();
   reader.onload = (ev) => {
     try {
@@ -92,26 +98,52 @@ function importJSON(e) {
       loadSettingsForm();
     } catch (err) {
       console.error("Backup import error:", err);
-      showToast(err.message && err.message.includes("storage") ? "Browser storage is full or unavailable; existing data was preserved where possible." : "Invalid or incompatible backup file.", "danger");
+      showToast(err.message && err.message.includes("storage") ? "Browser storage is full or unavailable; existing data was restored where possible." : "Invalid or incompatible backup file.", "danger");
     }
   };
+  reader.onerror = () => showToast("Could not read the backup file. Try another file.", "danger");
   reader.readAsText(file);
   e.target.value = "";
 }
 
 /* ---------- Resets ---------- */
+function restoreStorageSnapshot(keys, snapshot) {
+  keys.forEach((key) => {
+    try {
+      if (snapshot[key] === null || snapshot[key] === undefined) localStorage.removeItem(key);
+      else localStorage.setItem(key, snapshot[key]);
+    } catch (error) {
+      console.error("Storage rollback error for " + key + ":", error);
+    }
+  });
+}
+
+function snapshotStorage(keys) {
+  const snapshot = {};
+  keys.forEach((key) => { snapshot[key] = localStorage.getItem(key); });
+  return snapshot;
+}
+
 function resetMonth() {
   if (!confirm("Reset all expenses and savings allocations for the current month? Goals and settings will be kept.")) return;
   const cm = currentMonthKey();
   const remainingExpenses = getExpenses().filter((e) => monthKey(e.date) !== cm);
-  saveExpenses(remainingExpenses);
-
-  // Remove only this month's goal contributions and preserve historical savings.
   const goals = getGoals().map((goal) => ({
     ...goal,
     contributions: goal.contributions.filter((c) => monthKey(c.date) !== cm),
   }));
-  saveGoals(goals);
+  const keys = [STORAGE_KEYS.expenses, STORAGE_KEYS.goals];
+  let snapshot;
+  try {
+    snapshot = snapshotStorage(keys);
+    if (!saveExpenses(remainingExpenses)) throw new Error("Expense storage write failed");
+    if (!saveGoals(goals)) throw new Error("Goal storage write failed");
+  } catch (error) {
+    console.error("Monthly reset failed:", error);
+    if (snapshot) restoreStorageSnapshot(keys, snapshot);
+    showToast("Could not reset monthly data. Existing data was restored where possible.", "danger");
+    return;
+  }
 
   showToast("🗓️ Current month data reset", "warning");
   renderDashboard();
@@ -120,18 +152,19 @@ function resetMonth() {
 }
 
 function resetAll() {
-  if (!confirm("⚠️ This will delete ALL data including settings, expenses, and goals. Continue?")) return;
+  if (!confirm("⚠️ This will delete ALL data including settings, expenses, goals, and theme. Continue?")) return;
   if (!confirm("Are you absolutely sure? This action cannot be undone.")) return;
+  const keys = [STORAGE_KEYS.settings, STORAGE_KEYS.expenses, STORAGE_KEYS.goals, STORAGE_KEYS.theme, STORAGE_KEYS.onboarding];
+  let snapshot;
   try {
-    localStorage.removeItem(STORAGE_KEYS.settings);
-    localStorage.removeItem(STORAGE_KEYS.expenses);
-    localStorage.removeItem(STORAGE_KEYS.goals);
-    localStorage.removeItem(STORAGE_KEYS.onboarding);
+    snapshot = snapshotStorage(keys);
+    keys.forEach((key) => localStorage.removeItem(key));
     showToast("All data cleared. Reloading...", "warning");
     window.setTimeout(() => location.reload(), 1200);
   } catch (error) {
     console.error("Reset failed:", error);
-    showToast("Could not clear browser storage. Check browser storage permissions.", "danger");
+    if (snapshot) restoreStorageSnapshot(keys, snapshot);
+    showToast("Could not clear browser storage. Existing data was restored where possible.", "danger");
   }
 }
 
