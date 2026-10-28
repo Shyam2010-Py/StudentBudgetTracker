@@ -103,7 +103,15 @@
     <a href="#" class="nav-item" data-section="settings"><span>⚙️</span> Settings</a>
   </nav>
   <div class="sidebar-footer">
-    <p>v1.0.0</p>
+    <div class="cloud-account" aria-label="Cloud account">
+      <p id="cloudStatus" role="status" aria-live="polite">Cloud sync not configured — local mode works</p>
+      <p id="cloudEmail" class="cloud-email" hidden></p>
+      <div class="cloud-actions">
+        <button id="cloudAccountBtn" type="button" class="btn-ghost">Connect account</button>
+        <button id="cloudSyncBtn" type="button" class="btn-ghost" hidden>Sync now</button>
+      </div>
+    </div>
+    <p id="appVersion">v3.0.0</p>
   </div>
 </aside>
 <div id="sidebarOverlay" class="sidebar-overlay"></div>
